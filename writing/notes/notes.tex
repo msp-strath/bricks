@@ -39,7 +39,7 @@
 
 \section{introduction}
 
-The humble cons-list was, for many years, the workhorse of functional programming, being a means to capture free monoid structure in some (arbitrarily biased) canonical form. (We write its valuess $\nil$ for them empty list and $x\cons\xs$ for the list with head $x$ and tail $\xs$. Everyone else uses a \emph{symmetric} symbol for $\cons$ --- their teaching assistants weep as their students mistake it for a symmetric operation.) With the advent of fancy (dependent or otherwise) type systems, the world of list-like types has exploded, with many dimensions of variation, e.g.,
+The humble cons-list was, for many years, the workhorse of functional programming, being a means to capture free monoid structure in some (arbitrarily biased) canonical form. (We write its values $\nil$ for them empty list and $x\cons\xs$ for the list with head $x$ and tail $\xs$. Everyone else uses a \emph{symmetric} symbol for $\cons$ --- their teaching assistants weep as their students mistake it for a symmetric operation.) With the advent of fancy (dependent or otherwise) type systems, the world of list-like types has exploded, with many dimensions of variation, e.g.,
 \begin{description}
 \item[dimensions] two-dimensional matrices, and even higher-dimensional cuboids, can be seen as nested lists, with types imposing varying degrees of
 \item[coherence] meaning the extent to which we enforce non-raggedness, by whatever means, but notably
@@ -109,7 +109,7 @@ We have seen five structures --- $\Li$, $\All$, $\Alll$, $\ListR$ and $\Matrix$ 
 
 Let us start in \emph{one} dimension, seeking to characterize the distinctions between $\Li$, $\All$, $\Alll$ and $\ListR$. Look at how the cell types are indexed by `headers' in each case
 \[\begin{array}{l|l}
-\mbox{type former} & cell indices \\
+\mbox{type former} & \mbox{cell indices} \\
 \hline
 \Li & \\
 \All & x\hb X \\
