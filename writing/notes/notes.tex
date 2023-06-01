@@ -119,13 +119,13 @@ Let us start in \emph{one} dimension, seeking to characterize the distinctions b
 These indices form \emph{telescopes}, in the sense of de Bruijn, in which every entry type can depend on the entry values to its left. For $\Li$, $\All$ and $\Alll$, we see fully dependent telescopes of lengths 0, 1 and 2, respectively. But for $\ListR$, we note that the type $Y$ may \emph{not} depend on the value of $x$. The pattern of permitted dependencies determines the type of container brick from which the cell indices are drawn. Above, the non-dependent $x$s and $y$ are drawn from $\Li$s, while the dependent $p$ must be drawn from an $\All$. We may therefore specify the headers of a one-dimensional brick by giving a telescope with explicit dependency permissions.
 
 \begin{defn}[telescope with explicit dependency]
-  Inductively, the empty telescope $\emp$ is a telescope with explicit dependency, and an existing such telescope $\Delta$ may be extended to the right by some $\Delta,y\hb\vec x.T$ where $y$ is a name fresh for $\Delta$, and $\vec x$ is a dependency-closed selection of names bound in $\Delta$ i(n the order that $\Delta$ binds them), and $T$ is a type with respect to the subtelescope $\vec x\sel\Delta$ of $\Delta$ selected by $\vec x$. Such a selection is dependency-closed if every $x$ selected in $\vec x$ has all its dependencies included in $\vec x$. Dependency closure ensures the existence of the selected subtelescope.
+  Inductively, the empty telescope $\emp$ is a telescope with explicit dependency, and an existing such telescope $\Delta$ may be extended to the right by some $\Delta,y\hb\vec x.T$ where $y$ is a name fresh for $\Delta$, and $\vec x$ is a dependency-closed selection of names bound in $\Delta$ (in the order that $\Delta$ binds them), and $T$ is a type with respect to the subtelescope $\vec x\sel\Delta$ of $\Delta$ selected by $\vec x$. Such a selection is dependency-closed if every $x$ selected in $\vec x$ has all its dependencies included in $\vec x$. Dependency closure ensures the existence of the selected subtelescope.
   \[
   \begin{array}{r@{\sel}l@{\;=\;}ll}
     \;&\emp & \emp \\
     (\vec z y)&(\Delta,y\hb\vec x.T) & (\vec z\sel\Delta),y\hb\vec x.T
     &\mbox{noting}\;\vec x \subseteq \vec z\\
-    (\vec z z)&(\Delta,y\hb\vec x.T) & (\vec z z)\sel\Delta &\mbox{if}\;y\neq z \\
+    (\vec z)&(\Delta,y\hb\vec x.T) & (\vec z z)\sel\Delta &\mbox{if}\;y\not\in z \\
     \end{array}
   \]
 \end{defn}
