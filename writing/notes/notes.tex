@@ -1,0 +1,138 @@
+\documentclass{article}
+\usepackage{stmaryrd}
+\usepackage{latexsym}
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+\newtheorem{thm}{Theorem}[section]
+\newtheorem{defn}[thm]{Definition}
+\newtheorem{lem}{Lemma}[thm]
+\newtheorem{cor}{Corollary}[thm]
+\newtheorem{prop}{Proposition}[thm]
+\newtheorem{rem}{Remark}[thm]
+
+\begin{document}
+\title{all in all}
+\author{guillaume, fred, conor, \ldots}
+\maketitle
+
+\newcommand{\nil}{[]}
+\newcommand{\cons}{\mbox{$,\!\textrm{-}$}}
+\newcommand{\xs}{\mathit{xs}}
+\newcommand{\ys}{\mathit{ys}}
+\newcommand{\ps}{\mathit{ps}}
+\newcommand{\qs}{\mathit{qs}}
+\newcommand{\rs}{\mathit{rs}}
+\newcommand{\D}{\mathbf}
+\newcommand{\Ty}{\mathbf{Ty}}
+\newcommand{\Li}{\D{List}}
+\newcommand{\All}{\D{All}}
+\newcommand{\Alll}{\D{Alll}}
+\newcommand{\ListR}{\D{ListR}}
+\newcommand{\Matrix}{\D{Matrix}}
+\newcommand{\IF}{\;\Leftarrow\;}
+\newcommand{\hb}{\!:\!}
+\newcommand{\ma}{\mathbf{map}}
+\newcommand{\fst}{\mathbf{fst}}
+\newcommand{\sel}{\downharpoonleft}
+\newcommand{\emp}{\varepsilon}
+
+\section{introduction}
+
+The humble cons-list was, for many years, the workhorse of functional programming, being a means to capture free monoid structure in some (arbitrarily biased) canonical form. (We write its valuess $\nil$ for them empty list and $x\cons\xs$ for the list with head $x$ and tail $\xs$. Everyone else uses a \emph{symmetric} symbol for $\cons$ --- their teaching assistants weep as their students mistake it for a symmetric operation.) With the advent of fancy (dependent or otherwise) type systems, the world of list-like types has exploded, with many dimensions of variation, e.g.,
+\begin{description}
+\item[dimensions] two-dimensional matrices, and even higher-dimensional cuboids, can be seen as nested lists, with types imposing varying degrees of
+\item[coherence] meaning the extent to which we enforce non-raggedness, by whatever means, but notably
+\item[indexing] with the over-deployed length-indexed vectors being but one example (of a list with interesting elements with positions corresponding to those in a list with dull elements, otherwise a `natural number'), modelling sized arrays and admitting safe
+\item[access] which is not always left-to-right---right-to-left is also useful, but people get up to all sorts of things to support random access or healthy amortized complexity.
+\end{description}
+
+The archetype of these structures is (borrowing the language of propositions to talk about data-bearing types) the `predicate transformer'
+\[
+\All\;\in\;(X\to\Ty)\;\to\;(\Li\:X\to\Ty)
+\]
+where $\All\:P\:\xs$ stores a `proof' (possibly involving nontrivial data) of $P\:x$ for each element $x$ of $\xs$. More specifically,
+\[
+\All\:P\:\nil\ni\nil \qquad
+\All\:P\;(x\cons\xs)\ni p\cons\ps \IF P\:x\ni p,\; \All\:P\:\xs\ni\ps
+\]
+The type $X$ gives some notion of \emph{individual}; position in the list $\xs$ is a proxy for the distinction between individuals; the way $P\:x$ varies with $x$ tracks a notion of \emph{pertinence} to the individual. The length-indexed vectors is thus the special case where $X = 1$ --- the list individuals are indistinct and the vector elements are impertinent. That is, $\All$ characterizes a kind of \emph{table} where $\xs$ represents a row of \emph{headers}, while the \emph{cells} of the table have types dependent on the header which \emph{governs} them.
+
+Stepping onwards, we have at least three choices of direction.
+\begin{itemize}
+\item We might ask what sort of table has $\All\:P\:\xs$ as its type of headers. Consider `three-layer $\All$'
+  \[
+  \Alll\;\in\;((x\hb X)\to P\:x\to\Ty)\to((\xs\hb\Li\:X)\to\All\:P\:\xs\to\Ty)
+  \]
+  where data construction is in even tighter lock-step:
+  \[
+  \Alll\:Q\:\nil\:\nil\ni\nil \qquad
+  \Alll\:Q\:(x\cons\xs)\:(p\cons\ps)\ni q\cons\qs \IF
+    Q\:x\:p\ni q, \Alll\:Q\:\xs\:\ps\ni\qs
+    \]
+\item We might recognize $\All$ as the \emph{predicate} lifting of $\Li$ and ask what is the \emph{relational} lifting.
+  \[
+  \ListR\;\in\;(X\to Y\to\Ty)\to(\Li\:X \to \Li\:Y \to\Ty)
+  \]
+  which requires that the two lists have the same length, or more pertinently a sensible notion of `corresponding position', and that elements in corresponding positions are related:
+  \[
+  \ListR\:R\:\nil\:\nil \ni \nil \qquad
+  \ListR\:R\:(x\cons\xs)\:(y\cons\ys)\ni r\cons\rs \IF
+  R\:x\:y\ni r, \ListR\:R\:\xs\:\ys\ni\rs
+  \]
+\item We might reach into more dimensions, characterizing rectangular matrices with independent `row' and `column' headers, after the manner of a \emph{spreadsheet}.
+  \[
+  \Matrix\;\in\;(X\to Y\to\Ty)\to(\Li\:X \to \Li\:Y \to\Ty)
+  \]
+  which is readily definable using $\All$:
+  \[
+  \Matrix\:R\:\xs\:\ys \;=\; \All\:(\lambda x \mapsto \All\:(\lambda y\mapsto R\:x\:y)\:\ys)\:\xs
+  \]
+\end{itemize}
+
+The fact that $\ListR$ and $\Matrix$ have the same type but mean rather different things ought to prompt us to consider how to make the distinction plain. For $\ListR$, the two lists are in the `same dimension' and yoked together, with corresponding positions that are somehow cognate; for $\Matrix$, the lists are in `orthogonal dimensions', and any point in the cartesian product of their positions is in some way meaningful. Meanwhile, $\ListR$ and $\Alll$ both describe one-dimensional sequences yoked to two other one-dimensional sequences, but with differing patterns of type dependency.
+
+The fact that $\Matrix$ is definable in terms of $\All$ should prompt us to ask whether we can manage the same for $\Alll$ and $\ListR$. To avoid undue suspense, category theorists can but type theorists cannot. By dependent pairing, we may form
+\[
+\ListR\:\xs\:\ys \;=\; (\rs\hb\All\:(\lambda x\mapsto (y\hb Y)\times R\:x\:y)\:\xs)\times\:\ma\:\fst\:\rs = \ys
+\]
+That is, we forget that we know in advance the $\Li\:Y$ we want, yoke each $x$ to any old $y$ such that $R\:x\:y$, then, as an afterthought, demand the outrageous coincidence that the $y$s we collected turned out to be exactly the $\ys$ we now remember that we wanted. Such inverse image constructions create troublesome pedantry when one's audience is too mechanical to be readily intimidated. Similarly,
+\[
+\Alll\:Q\:\xs\:\ps \;=\; (\qs\hb\All\:(\lambda x\mapsto (p\hb P\:x)\times Q\:x\:p)\:\xs) \times \ma\:\fst\:\qs = \ps
+\]
+where again the prior indexing is rendered as posterior projection. If we want to retain the intrinsic coherence that comes from knowing the indices in advance, the current state of the art requires us to invent $\Alll$ and $\ListR$ afresh, as if they have nothing to do with one another.
+
+We have seen five structures --- $\Li$, $\All$, $\Alll$, $\ListR$ and $\Matrix$ --- but we might imagine many others, e.g., rectangular collections of cells where the length and height are not explicit in the type but their uniformity is enforced, or cuboids of data indexed by three matrices on the three faces meeting at the origin themselves indexed by two of three lists on their axes. Let us seek a common scheme for describing these $m$-dimensional data `bricks' indexed over various $n$-dimensional `bricks', where the $n$ are selected from the $m$. The humble cons-list is then the simplest form of one-dimensional brick, in which the cell type is unindexed and so is the container type.
+
+
+\section{telescopes with explicit dependency}
+
+Let us start in \emph{one} dimension, seeking to characterize the distinctions between $\Li$, $\All$, $\Alll$ and $\ListR$. Look at how the cell types are indexed by `headers' in each case
+\[\begin{array}{l|l}
+\mbox{type former} & cell indices \\
+\hline
+\Li & \\
+\All & x\hb X \\
+\Alll & x\hb X, p\hb P\:x \\
+\ListR & x\hb X, y\hb Y
+\end{array}\]
+These indices form \emph{telescopes}, in the sense of de Bruijn, in which every entry type can depend on the entry values to its left. For $\Li$, $\All$ and $\Alll$, we see fully dependent telescopes of lengths 0, 1 and 2, respectively. But for $\ListR$, we note that the type $Y$ may \emph{not} depend on the value of $x$. The pattern of permitted dependencies determines the type of container brick from which the cell indices are drawn. Above, the non-dependent $x$s and $y$ are drawn from $\Li$s, while the dependent $p$ must be drawn from an $\All$. We may therefore specify the headers of a one-dimensional brick by giving a telescope with explicit dependency permissions.
+
+\begin{defn}[telescope with explicit dependency]
+  Inductively, the empty telescope $\emp$ is a telescope with explicit dependency, and an existing such telescope $\Delta$ may be extended to the right by some $\Delta,y\hb\vec x.T$ where $y$ is a name fresh for $\Delta$, and $\vec x$ is a dependency-closed selection of names bound in $\Delta$ i(n the order that $\Delta$ binds them), and $T$ is a type with respect to the subtelescope $\vec x\sel\Delta$ of $\Delta$ selected by $\vec x$. Such a selection is dependency-closed if every $x$ selected in $\vec x$ has all its dependencies included in $\vec x$. Dependency closure ensures the existence of the selected subtelescope.
+  \[
+  \begin{array}{r@{\sel}l@{\;=\;}ll}
+    \;&\emp & \emp \\
+    (\vec z y)&(\Delta,y\hb\vec x.T) & (\vec z\sel\Delta),y\hb\vec x.T
+    &\mbox{noting}\;\vec x \subseteq \vec z\\
+    (\vec z z)&(\Delta,y\hb\vec x.T) & (\vec z z)\sel\Delta &\mbox{if}\;y\neq z \\
+    \end{array}
+  \]
+\end{defn}
+
+\begin{rem}[fresh names]
+  Of course, telescopes should be considered invariant under $\alpha$-equivalence. Formally, telescopes are given in some nameless representation, with selections being given as bit vectors.
+\end{rem}
+
+
+\end{document}
