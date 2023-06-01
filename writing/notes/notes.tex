@@ -13,7 +13,7 @@
 
 \begin{document}
 \title{all in all}
-\author{guillaume, fred, conor, \ldots}
+\author{guillaume, georgi, fred, conor,\ldots}
 \maketitle
 
 \newcommand{\nil}{[]}
@@ -36,6 +36,8 @@
 \newcommand{\fst}{\mathbf{fst}}
 \newcommand{\sel}{\downharpoonleft}
 \newcommand{\emp}{\varepsilon}
+\newcommand{\from}{\leftarrow}
+\newcommand{\st}{\;|\;}
 
 \section{introduction}
 
@@ -102,21 +104,21 @@ That is, we forget that we know in advance the $\Li\:Y$ we want, yoke each $x$ t
 \]
 where again the prior indexing is rendered as posterior projection. If we want to retain the intrinsic coherence that comes from knowing the indices in advance, the current state of the art requires us to invent $\Alll$ and $\ListR$ afresh, as if they have nothing to do with one another.
 
-We have seen five structures --- $\Li$, $\All$, $\Alll$, $\ListR$ and $\Matrix$ --- but we might imagine many others, e.g., rectangular collections of cells where the length and height are not explicit in the type but their uniformity is enforced, or cuboids of data indexed by three matrices on the three faces meeting at the origin themselves indexed by two of three lists on their axes. Let us seek a common scheme for describing these $m$-dimensional data `bricks' indexed over various $n$-dimensional `bricks', where the $n$ are selected from the $m$. The humble cons-list is then the simplest form of one-dimensional brick, in which the cell type is unindexed and so is the container type.
+We have seen five structures --- $\Li$, $\All$, $\Alll$, $\ListR$ and $\Matrix$ --- but we might imagine many others, e.g., rectangular collections of cells where the length and height are not explicit in the type but their uniformity is enforced, or cuboids of data indexed by three matrices on the three faces meeting at the origin themselves indexed by two of three lists on their axes. Let us seek a common scheme for describing these $m$-dimensional data `bricks' indexed over various $n$-dimensional `bricks', where the $n$ are selected from the $m$. The humble cons-list is then the simplest form of one-dimensional brick, in which the cell type is unindexed and so is the brick type, but each of the rest is just another brick, rather than something we must invent anew.
 
 
 \section{telescopes with explicit dependency}
 
 Let us start in \emph{one} dimension, seeking to characterize the distinctions between $\Li$, $\All$, $\Alll$ and $\ListR$. Look at how the cell types are indexed by `headers' in each case
-\[\begin{array}{l|l}
-\mbox{type former} & \mbox{cell indices} \\
+\[\begin{array}{l|l|l}
+\mbox{type former} & \mbox{cell indices} & \mbox{brick indices}\\
 \hline
-\Li & \\
-\All & x\hb X \\
-\Alll & x\hb X, p\hb P\:x \\
-\ListR & x\hb X, y\hb Y
+\Li & & \\
+\All & x\hb X & \xs\hb\Li\:X\\
+\Alll & x\hb X, p\hb P\:x & \xs\hb\Li\:X, \ps\hb\All\:P\:\xs\\
+\ListR & x\hb X, y\hb Y & \xs\hb\Li\:X, \ys\hb\Li\:Y\\
 \end{array}\]
-These indices form \emph{telescopes}, in the sense of de Bruijn, in which every entry type can depend on the entry values to its left. For $\Li$, $\All$ and $\Alll$, we see fully dependent telescopes of lengths 0, 1 and 2, respectively. But for $\ListR$, we note that the type $Y$ may \emph{not} depend on the value of $x$. The pattern of permitted dependencies determines the type of container brick from which the cell indices are drawn. Above, the non-dependent $x$s and $y$ are drawn from $\Li$s, while the dependent $p$ must be drawn from an $\All$. We may therefore specify the headers of a one-dimensional brick by giving a telescope with explicit dependency permissions.
+These indices form \emph{telescopes}, in the sense of de Bruijn, in which every entry type can depend on the entry values to its left. For $\Li$, $\All$ and $\Alll$, we see fully dependent telescopes of lengths 0, 1 and 2, respectively. But for $\ListR$, we note that the type $Y$ may \emph{not} depend on the value of $x$. The pattern of permitted dependencies determines the type of brick from which the cell indices are drawn. Above, the non-dependent $x$s and $y$ are drawn from $\Li$s, while the dependent $p$ must be drawn from an $\All$. We may therefore specify the headers of a one-dimensional brick by giving a telescope with explicit dependency permissions.
 
 \begin{defn}[telescope with explicit dependency]
   Inductively, the empty telescope $\emp$ is a telescope with explicit dependency, and an existing such telescope $\Delta$ may be extended to the right by some $\Delta,y\hb\vec x.T$ where $y$ is a name fresh for $\Delta$, and $\vec x$ is a dependency-closed selection of names bound in $\Delta$ (in the order that $\Delta$ binds them), and $T$ is a type with respect to the subtelescope $\vec x\sel\Delta$ of $\Delta$ selected by $\vec x$. Such a selection is dependency-closed if every $x$ selected in $\vec x$ has all its dependencies included in $\vec x$. Dependency closure ensures the existence of the selected subtelescope.
@@ -128,11 +130,62 @@ These indices form \emph{telescopes}, in the sense of de Bruijn, in which every 
     \vec z&(\Delta,y\hb\vec x.T) & \vec z\sel\Delta &\mbox{if}\;y\not\in \vec z \\
     \end{array}
   \]
+If a dependency sequence $\vec x$ is empty, it is permitted to omit the $.$ before the $T$.
 \end{defn}
 
 \begin{rem}[fresh names]
   Of course, telescopes should be considered invariant under $\alpha$-equivalence. Formally, telescopes are given in some nameless representation, with selections being given as bit vectors.
 \end{rem}
+
+We now have the means to distinguish the header telescope for $\Alll$, namely $\emp,x\hb X,p\hb x.T$, from that for $\ListR$, namely $\emp,x\hb X, y\hb Y$. However, we have yet to clarify how to specify these one-dimensional brick types as a whole.
+
+
+\section{one-dimensional bricks}
+
+Let us start by giving some examples, then back-fill the general scheme. Brick types look a little like \emph{parallel} comprehensions. $\Li X$ is a trivial comprehension, which makes it hard to notice that it is a comprehension at all.
+\[
+  [X\st\emp]
+\]
+However, $\All\:P\:\xs$ is more clearly a comprehension
+\[
+  [P\:x\st \emp, x\hb X\from\xs]
+  \quad\mbox{where}\quad
+  [X\st\emp]\ni \xs
+\]
+$\ListR\:R\:\xs\:\ys$ is
+\[
+  [R\:x\:y\st \emp, x\hb X\from\xs, y\hb Y\from\ys]
+  \quad\mbox{where}\quad
+  [X\st\emp]\ni \xs, [Y\st\emp]\ni \ys
+\]
+and $\Alll\:Q\:\xs\:\ps$ is
+\[
+  [Q\:x\:p\st \emp, x\hb X\from\xs, p\hb x.P\:x\from\ps]
+  \quad\mbox{where}\quad
+  [X\st\emp]\ni \xs, [P\:x\st x\hb X\from\xs]\ni \ps
+\]
+
+That is, we annotate each entry in the header context with the brick it is drawn from, so $\Delta\from\vec\ys$ and extend the $\sel$ operator accordingly. Whenever we extend to $\Delta\from\vec\ys,y\hb\vec x.S\from \ys$, we should have
+\[
+  [S\st \vec x\sel(\Delta\from\vec ys)]\ni ys
+\]
+We have come good on the idea that the explicit dependencies are what distinguish the header brick types in $\ListR$ and $\Alll$.
+
+\begin{defn}[one-dimensional brick type]
+  The type
+  \[
+    [T\sel\Delta\from\vec\ys]
+  \]
+  is a valid one-dimensional brick type if $\Delta\from\vec\ys$ is a valid sequence of headers and $\Delta\vdash\Ty\ni T$.
+  The empty sequence $\emp$ is a valid sequence of headers. If $\Delta\from\vec\ys$ is a valid sequence of headers, we may validly extend it to $\Delta\from\vec\ys,y\hb\vec x.S\from \ys$ if $\vec x\sel\Delta\vdash \Ty\ni S$ and $[S\st\vec x\sel(\Delta\from\vec\ys)]\ni\ys$.
+\end{defn}
+
+Now, what is a brick in such a type? The rules may seem straightforward, but they disguise a mathematician's vacuity joke.
+\begin{itemize}
+\item If all the headers are $\nil$, the brick may be $\nil$.
+\item If all the headers are $\cdot\cons\cdot$, the brick may be $\cdot\cons\cdot$.
+\end{itemize}
+Whenever the header sequence is $\emp$, \emph{both} of these conditions are vacuously satisfied, so the brick may be \emph{either} $\nil$ or $\cdot\cons\cdot$, recovering exactly the unconstrained cons-lists from the mud of our childhoods.
 
 
 \end{document}
