@@ -1,4 +1,4 @@
-module Data.Brick where
+module Data.Brickold where
 
 open import Agda.Primitive using (Level; _⊔_)
 open import Agda.Builtin.Bool using (Bool; true; false)
