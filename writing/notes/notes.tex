@@ -23,6 +23,8 @@
 \newcommand{\ps}{\mathit{ps}}
 \newcommand{\qs}{\mathit{qs}}
 \newcommand{\rs}{\mathit{rs}}
+\renewcommand{\ss}{\mathit{ss}}
+\newcommand{\ts}{\mathit{ts}}
 \newcommand{\D}{\mathbf}
 \newcommand{\Ty}{\mathbf{Ty}}
 \newcommand{\Li}{\D{List}}
@@ -38,6 +40,8 @@
 \newcommand{\emp}{\varepsilon}
 \newcommand{\from}{\leftarrow}
 \newcommand{\st}{\;|\;}
+\newcommand{\g}{\:}
+\newcommand{\s}{\:}
 
 \section{introduction}
 
@@ -146,6 +150,8 @@ Let us start by giving some examples, then back-fill the general scheme. Brick t
 \[
   [X\st\emp]
 \]
+(Indeed, we could even allow the omission of the $\st$ when the header context is empty, to fool Haskell programmers into thinking that nothing unusual is happening.)
+  
 However, $\All\:P\:\xs$ is more clearly a comprehension
 \[
   [P\:x\st \emp, x\hb X\from\xs]
@@ -181,11 +187,46 @@ We have come good on the idea that the explicit dependencies are what distinguis
 \end{defn}
 
 Now, what is a brick in such a type? The rules may seem straightforward, but they disguise a mathematician's vacuity joke.
-\begin{itemize}
-\item If all the headers are $\nil$, the brick may be $\nil$.
-\item If all the headers are $\cdot\cons\cdot$, the brick may be $\cdot\cons\cdot$.
-\end{itemize}
-Whenever the header sequence is $\emp$, \emph{both} of these conditions are vacuously satisfied, so the brick may be \emph{either} $\nil$ or $\cdot\cons\cdot$, recovering exactly the unconstrained cons-lists from the mud of our childhoods.
+\begin{defn}[one-dimensional brick]
+  One-dimensional bricks are constructed from $\nil$ and $\cdot\cons\cdot$ in accordance with the rules:
+  \[
+  [T\st\Delta\from\vec\nil]\ni\nil
+  \]
+  (i.e., the brick may be $\nil$ if all the headers are)
+  \[
+    [T\st\Delta\from(\vec s\cons\vec\ss)]\ni t\cons\ts \IF
+    T\{\vec s/\Delta\}\ni t, [T\st\Delta\from\vec\ss]\ni \ts
+  \]
+  (i.e., the brick may be a $\cdot\cons\cdot$ if all the headers are, with the brick head's type being the cell type instantiated with the header heads)
+\end{defn}
+Note that whenever the header sequence is $\emp$, \emph{both} of these conditions are vacuously satisfied, so the brick may be \emph{either} $\nil$ or $\cdot\cons\cdot$, recovering exactly the unconstrained cons-lists from the mud of our childhoods. Meanwhile, we recover $\All$, $\Alll$, and $\ListR$ exactly as declared above.
 
+
+\section{bricks in more (or fewer) dimensions}
+
+Suitably warmed up, let us now extend the notion of brick to any number of dimensions including zero. We open up the \emph{left} panel of the triptych and write $\Matrix\:R\:\xs\:\ys$ as
+\[
+[i\s j\st R\:x\:y \st i\g x\hb X\from\xs, j\g y\hb Y\from\ys]
+\]
+The names $i$ and $j$ are the binding sites of the dimensions used to annotate the headers, and they are subject to $\alpha$-equivalence. Again, it would suffice to identify the \emph{number} of dimensions and give for each header a bit vector indicating which dimensions it exists in, but that would be less friendly to humans.
+
+\begin{defn}[brick type]
+  A brick type has the form
+  \[
+  [\vec i \st T \st \Gamma]
+  \]
+  where each entry in $\Gamma$ is of form
+  \[
+  \vec j\g y\hb\vec x.S\from \ss
+  \]
+  with
+  \begin{itemize}
+  \item the dimensions $\vec j$ of $y$ selected from $\vec i$
+  \item the dependencies $\vec x$ of $y$ selected from $\Gamma$ left of $y$ such that the dimensions of each $x$ are selected from $\vec j$ and the dependencies of each $x$ are selected from $\vec x$
+  \item $\vec x\sel\Gamma \vdash \Ty \ni S$
+  \item $[\vec j\st S\st \vec x\sel\Gamma] \ni \ss$
+  \end{itemize}
+  and where $\Gamma\vdash \Ty\ni T$.
+\end{defn}
 
 \end{document}
