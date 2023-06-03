@@ -229,4 +229,17 @@ The names $i$ and $j$ are the binding sites of the dimensions used to annotate t
   and where $\Gamma\vdash \Ty\ni T$.
 \end{defn}
 
+We note that $[|T|]$ is a brick type when $\Ty\ni T$ and consider it to be the same type as $X$. Indeed, this allows us to have \emph{zero}-dimensional headers instantiated by single values. $[|T|\Delta\from\vec s] = T\{\vec s/\Delta\}$. We may maintain the convention that a brick type with at most one $\st$ has one unnamed dimension with which all headers align.
+
+Headerless types exist at higher dimensions. $[i\s j\st T \st]$ is the type of rectangular arrays of $T$ cells with unspecified size. This raises two problems:
+\begin{itemize}
+\item How do we exclude \emph{ragged} lists of lists?
+\item How do we ensure that the \emph{empty} list of lists is invertibly transposable?
+\end{itemize}
+
+All of our bricks should have \emph{one} size in each of their dimensions, whether or not that size is fixed by a size of a header. In theory, the typechecker can guess these sizes $n_i$ for each dimension $i$ by magic and insert an extra header $i\g\_:1\from n_i$ in each dimension (recalling that $[1]$ acts as the type of natural numbers). In practice, the typechecker can guess these sizes, for the most part, by a particularly degenerate form of unification. However, these sizes are accessible at run-time: you can always compute the number of $\cons$es in the outermost layer, and you should always be able to reorder the layers by any permutation of the dimensions.
+
+Correspondingly, there must be a way to give the missing sizes whenever a brick is degenerate. Whenever an outer layer is of size zero, we should be able to write its `nil' as $[\times n_i\ldots\times n_k]$ to fill in the sizes of the inner layers. That is, $[\times 2]$ is a $0\times 2$ rectangle, and its transpose is $\nil\cons\nil\cons\nil$.
+
+
 \end{document}
