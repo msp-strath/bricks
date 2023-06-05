@@ -237,9 +237,11 @@ Headerless types exist at higher dimensions. $[i\s j\st T \st]$ is the type of r
 \item How do we ensure that the \emph{empty} list of lists is invertibly transposable?
 \end{itemize}
 
-All of our bricks should have \emph{one} size in each of their dimensions, whether or not that size is fixed by a size of a header. In theory, the typechecker can guess these sizes $n_i$ for each dimension $i$ by magic and insert an extra header $i\g\_:1\from n_i$ in each dimension (recalling that $[1]$ acts as the type of natural numbers). In practice, the typechecker can guess these sizes, for the most part, by a particularly degenerate form of unification. However, these sizes are accessible at run-time: you can always compute the number of $\cons$es in the outermost layer, and you should always be able to reorder the layers by any permutation of the dimensions.
+All of our bricks should have \emph{one} size in each of their dimensions, whether or not that size is fixed by a size of a header. In theory, the typechecker can guess these sizes $n_i$ for each dimension $i$ by magic and insert an extra header $i\g\_:1\from n_i$ in each dimension (recalling that $[1]$ acts as the type of natural numbers). In practice, the typechecker can guess these sizes, for the most part, by a particularly degenerate form of unification. However, these sizes are accessible at run-time: you can always compute the number of $\cons$es in the outermost layer, and you should always be able to reorder the layers by any permutation of the dimensions. In Hindley-Milner polymorphism, parametricity allows us to generalize over anything which survives type inference unconstrained, but here (as with Haskell type classes in the notorious \texttt{show.read} example), failure to infer sizes is an error.
 
 Correspondingly, there must be a way to give the missing sizes whenever a brick is degenerate. Whenever an outer layer is of size zero, we should be able to write its `nil' as $[\times n_i\ldots\times n_k]$ to fill in the sizes of the inner layers. That is, $[\times 2]$ is a $0\times 2$ rectangle, and its transpose is $\nil\cons\nil\cons\nil$.
+
+
 
 
 \end{document}
