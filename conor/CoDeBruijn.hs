@@ -137,33 +137,33 @@ thicken  Ze      Ze     = pure Ze
 
 data Vec :: Nat -> * -> * where
   VN   :: Vec Z x
-  (:#) :: x -> Vec n x -> Vec (S n) x
+  (:#) :: Vec n x -> x -> Vec (S n) x
 
-vecL :: Vec n x -> [x]
-vecL VN = []
-vecL (x :# xs) = x : vecL xs
+vecL :: Vec n x -> [x] -> [x]
+vecL VN ys = ys
+vecL (xs :# x) ys = vecL xs (x : ys)
 
-instance Show x => Show (Vec n x) where show = show . vecL
+instance Show x => Show (Vec n x) where show xs = show $ vecL xs []
 
 instance Traversable (Vec n) where
   traverse f VN = pure VN
-  traverse f (x :# xs) = (:#) <$> f x <*> traverse f xs
+  traverse f (xs :# x) = (:#) <$> traverse f xs <*> f x
 
 instance Foldable (Vec n) where foldMap = foldMapDefault
 instance Functor (Vec n) where fmap = fmapDefault
 
 rep :: Natty n -> x -> Vec n x
 rep  Zy    x = VN
-rep (Sy n) x = x :# rep n x
+rep (Sy n) x = rep n x :# x
 
 instance NATTY n => Applicative (Vec n) where
   pure = rep natty
   fs <*> ss = help fs ss where
     help :: forall s t n. Vec n (s -> t) -> Vec n s -> Vec n t
     help VN VN = VN
-    help (f :# fs) (s :# ss) = f s :# help fs ss
+    help (fs :# f) (ss :# s) = help fs ss :# f s
 
 (?^) :: n <= m -> Vec m x -> Vec n x
-No th ?^ (_ :# xs) = th ?^ xs
-Su th ?^ (x :# xs) = x :# (th ?^ xs)
+No th ?^ (xs :# _) = th ?^ xs
+Su th ?^ (xs :# x) = (th ?^ xs) :# x
 Ze    ?^    VN     = VN

@@ -47,8 +47,8 @@ instance Thinny Ty where
          -> (forall m'. n' <= m' -> Sg m m' -> t)
          -> t
     help th  One              k = k th One
-    help th (Field ro (x, t)) k = help th ro $ \ th ro ->
-      k (Su th) (Field ro (x, t -< th))
+    help th (Field sg (x, t)) k = help th sg $ \ th sg ->
+      k (Su th) (Field sg (x, t -< th))
   Brick d t hz -< th = help th hz (\ ph hz -> Brick d (t -< ph) hz) where
     help :: forall d k n n' m t. n <= m -> Hd d n k n'
          -> (forall m'. n' <= m' -> Hd d m k m' -> t)
@@ -65,4 +65,41 @@ instance Thinny Ch where
 instance Thinny Sy where
   V i -< th = V (i -< th)
   (t ::: ty) -< th = (t -< th) ::: (ty -< th)
-  
+
+
+type Cx n = (Vec n (Ty n), Natty n)
+
+push :: Cx n -> Ty n -> Cx (S n)
+push (ga, n) s = ((-< No (io n)) <$> (ga :# s), Sy n)
+
+goodTy :: Cx n -> Ty n -> Maybe ()
+goodTy ga (Record sg) = () <$ goodSg ga sg
+goodTy ga (Brick d t hz) = do
+  ga <- goodHd ga d hz
+  goodTy ga t
+-- goodTy ga t = Nothing
+
+goodSg :: Cx n -> Sg n m -> Maybe (Cx m)
+goodSg ga One = pure ga
+goodSg ga (Field sg (x, s)) = do
+  ga <- goodSg ga sg
+  goodTy ga s
+  pure (push ga s)
+
+goodHd :: Cx n -> Natty d -> Hd d n k m -> Maybe (Cx m)
+goodHd ga d Empt = pure ga
+goodHd ga d (Grow hz th ph s h) = do
+  de <- goodHd ga d hz
+  goodTy de s
+  legit d hz th ph
+  -- check the support of s
+  -- check h
+  pure (push de s)
+ where
+  legit :: Natty d -> Hd d n k m -> i <= d -> l <= k -> Maybe ()
+  legit _ Empt _ Ze = pure ()
+  legit d (Grow hz th' ph' _ _) th (No ph) = legit d hz th ph
+  legit d (Grow hz th' ph' _ _) th (Su ph) = do
+    thicken th' th
+    thicken ph' ph
+    legit d hz th ph
