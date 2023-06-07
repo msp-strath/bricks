@@ -20,16 +20,21 @@ data Sg :: Nat -> Nat -> * where
 data Hd :: Nat -- dimensions
         -> Nat -- n free on the left 
         -> Nat -- k many fields
-        -> Nat -- n + k free on the right
+        -> Nat -- n + k
         -> *
         where
   Empt :: Hd d n Z n
   Grow :: Hd d n k m -- existing fields
        -> i <= d  -- choose dimensions
        -> l <= k  -- choose permitted dependencies
-       -> Ty m    -- header cell type (yikes at m!)
-       -> Ch n    -- header
+       -> AddR n l s  -- compute extended scope
+       -> Ty s    -- header cell type
+       -> Ch n    -- header brick
        -> Hd d n (S k) (S m)
+
+hdAddR :: Natty n -> Hd d n k m -> AddR n k m
+hdAddR n Empt = AddZ n
+hdAddR n (Grow hz _ _ _ _ _) = AddS (hdAddR n hz)
 
 data Sy :: Nat -> * where
   V :: S Z <= n -> Sy n
@@ -39,7 +44,6 @@ data Ch :: Nat -> * where
   N    :: Ch n
   (:&) :: Ch n -> Ch n -> Ch n
   E    :: Sy n -> Ch n
-
 
 instance Thinny Ty where
   Record sg -< th = help th sg (const Record) where
@@ -54,8 +58,20 @@ instance Thinny Ty where
          -> (forall m'. n' <= m' -> Hd d m k m' -> t)
          -> t
     help th  Empt             k = k th Empt
-    help th (Grow hz i d s h) k = help th hz $ \ ph hz ->
-      k (Su ph) (Grow hz i d (s -< ph) (h -< th))
+    help th (Grow hz i d a s h) k = help th hz $ \ ph hz ->
+      case wksThin th a of
+        Wit m (ps :* a') ->
+          k (Su ph) (Grow hz i d a' (s -< ps) (h -< th))
+  {-
+  support (Record sg) n = snd (help n sg) where
+    help :: forall n m. Natty n -> Sg n m -> ((n <= m, Natty m), Natty ^ n)
+    help n One = ((io n, n), Zy :^ no n)
+    help n (Field sg (x, s)) = case help n sg of
+      ((ph, m), (_ :^ la)) -> case support s m of
+        (_ :^ rh) -> case pub rh ph of
+          Sqr _ _ rh' -> case cop la rh' of
+            _ :^ mu -> ((No ph, Sy m), weeEnd mu :^ mu)
+  -}
 
 instance Thinny Ch where
   N -< th = N
@@ -88,18 +104,24 @@ goodSg ga (Field sg (x, s)) = do
 
 goodHd :: Cx n -> Natty d -> Hd d n k m -> Maybe (Cx m)
 goodHd ga d Empt = pure ga
-goodHd ga d (Grow hz th ph s h) = do
+goodHd ga d (Grow hz th ph a s h) = do
   de <- goodHd ga d hz
-  goodTy de s
-  legit d hz th ph
-  -- check the support of s
+  -- but de is not the right scope for s
+  -- make "legit" do that computation
+  (xi, gz, ps) <- legit ga hz th ph a
+  goodTy xi s
   -- check h
-  pure (push de s)
+  pure (push de (s -< ps))
  where
-  legit :: Natty d -> Hd d n k m -> i <= d -> l <= k -> Maybe ()
-  legit _ Empt _ Ze = pure ()
-  legit d (Grow hz th' ph' _ _) th (No ph) = legit d hz th ph
-  legit d (Grow hz th' ph' _ _) th (Su ph) = do
-    thicken th' th
-    thicken ph' ph
-    legit d hz th ph
+  legit :: Cx n -> Hd d n k m -> i <= d -> l <= k -> AddR n l s
+        -> Maybe (Cx s, Hd i n l s, s <= m)
+  legit ga Empt th ph (AddZ n) = pure (ga, Empt, io n)
+  legit ga (Grow hz th' ph' a' s' h') th (No ph) a = do
+    (xi, gz, ps) <- legit ga hz th ph a
+    pure (xi, gz, No ps)
+  legit ga (Grow hz th' ph' a' s' h') th (Su ph) (AddS a) = do
+    (xi, gz, ps) <- legit ga hz th ph a
+    th0 <- thicken th' th
+    ph0 <- thicken ph' ph
+    pure (push xi (s' -< thAdd a' (io (snd ga)) ph0 a), Grow gz th0 ph0 a' s' h', Su ps)
+  

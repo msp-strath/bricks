@@ -62,54 +62,53 @@ io  Zy    = Ze
 
 class Thinny (f :: Nat -> *) where
   (-<) :: forall n m. f n -> n <= m -> f m
+  -- support :: forall n. f n -> Natty n -> Natty ^ n
 
 instance Thinny ((<=) l) where
   th    -< No ph = No (th -< ph)
   No th -< Su ph = No (th -< ph)
   Su th -< Su ph = Su (th -< ph)
   Ze    -< Ze    = Ze
+  -- support th _ = weeEnd th :^ th
 
 no :: forall m. Natty m -> Z <= m
 no (Sy m) = No (no m)
 no  Zy    = Ze
 
 data Cov :: Nat -> Nat -> Nat -> * where
-  SN :: Cov l m r -> Cov (S l) (S m)    r
-  NS :: Cov l m r -> Cov    l  (S m) (S r)
-  SS :: Cov l m r -> Cov (S l) (S m) (S r)
+  SN :: Cov l r m -> Cov (S l)    r  (S m)
+  NS :: Cov l r m -> Cov    l  (S r) (S m)
+  SS :: Cov l r m -> Cov (S l) (S r) (S m)
   ZZ :: Cov Z Z Z
 
-instance Show (Cov l m r) where
+instance Show (Cov l r m) where
   show u = help u "]" where
-    help :: forall l m r. Cov l m r -> String -> String
+    help :: forall l r m. Cov l r m -> String -> String
     help (SN u) s = help u ("10." ++ s)
     help (NS u) s = help u ("01." ++ s)
     help (SS u) s = help u ("11." ++ s)
     help ZZ     s = "[" ++ s
 
-covl :: Cov l m r -> l <= m
+covl :: Cov l r m -> l <= m
 covl (SN u) = Su (covl u)
 covl (NS u) = No (covl u)
 covl (SS u) = Su (covl u)
 covl  ZZ    = Ze
 
-covr :: Cov l m r -> r <= m
+covr :: Cov l r m -> r <= m
 covr (SN u) = No (covr u)
 covr (NS u) = Su (covr u)
 covr (SS u) = Su (covr u)
 covr  ZZ    = Ze
 
-data Cop :: Nat -> Nat -> Nat -> * where
-  Cop :: Cov l n r -> n <= m -> Cop l m r
-instance Show (Cop l m r) where
-  show (Cop u ps) = "Cop " ++ show u ++ " " ++ show ps
+type Cop l r m = Cov l r ^ m
 
-cop :: l <= m -> r <= m -> Cop l m r
-cop (No th) (No ph) = case cop th ph of Cop u ps -> Cop u (No ps)
-cop (No th) (Su ph) = case cop th ph of Cop u ps -> Cop (NS u) (Su ps)
-cop (Su th) (No ph) = case cop th ph of Cop u ps -> Cop (SN u) (Su ps)
-cop (Su th) (Su ph) = case cop th ph of Cop u ps -> Cop (SS u) (Su ps)
-cop  Ze      Ze     = Cop ZZ Ze
+cop :: l <= m -> r <= m -> Cop l r m
+cop (No th) (No ph) = case cop th ph of u :^ ps ->    u :^ No ps
+cop (No th) (Su ph) = case cop th ph of u :^ ps -> NS u :^ Su ps
+cop (Su th) (No ph) = case cop th ph of u :^ ps -> SN u :^ Su ps
+cop (Su th) (Su ph) = case cop th ph of u :^ ps -> SS u :^ Su ps
+cop  Ze      Ze     =                              ZZ   :^ Ze
 
 data (^) :: (Nat -> *) -> Nat -> * where
   (:^) :: p n -> n <= m -> p ^ m
@@ -123,10 +122,10 @@ bi (p :^ No th) = K p :^ th
 bi (p :^ Su th) = L p :^ th
 
 data (&) :: (Nat -> *) -> (Nat -> *) -> (Nat -> *) where
-  P :: s l -> Cov l m r -> t r -> (s & t) m
+  P :: s l -> Cov l r m -> t r -> (s & t) m
 
 (^&^) :: s ^ m -> t ^ m -> (s & t) ^ m
-(s :^ th) ^&^ (t :^ ph) = case cop th ph of Cop u ps -> P s u t :^ ps
+(s :^ th) ^&^ (t :^ ph) = case cop th ph of u :^ ps -> P s u t :^ ps
 
 thicken :: l <= m -> n <= m -> Maybe (l <= n)
 thicken (Su th) (No ph) = Nothing
@@ -167,3 +166,43 @@ instance NATTY n => Applicative (Vec n) where
 No th ?^ (xs :# _) = th ?^ xs
 Su th ?^ (xs :# x) = (th ?^ xs) :# x
 Ze    ?^    VN     = VN
+
+data Pub :: Nat -> Nat -> Nat -> * where
+  Sqr :: n <= l -> n <= m -> n <= r -> Pub l m r
+
+pub :: l <= m -> r <= m -> Pub l m r
+pub (No th) (No ph) = case pub th ph of
+  Sqr th' ps' ph' -> Sqr th' (No ps') ph'
+pub (No th) (Su ph) = case pub th ph of
+  Sqr th' ps' ph' -> Sqr th' (No ps') (No ph')
+pub (Su th) (No ph) = case pub th ph of
+  Sqr th' ps' ph' -> Sqr (No th') (No ps') ph'
+pub (Su th) (Su ph) = case pub th ph of
+  Sqr th' ps' ph' -> Sqr (Su th') (Su ps') (Su ph')
+pub Ze Ze = Sqr Ze Ze Ze
+
+
+data AddR :: Nat -> Nat -> Nat -> * where
+  AddZ :: Natty n    -> AddR n Z n
+  AddS :: AddR n l m -> AddR n (S l) (S m)
+
+data Ex :: (Nat -> *) -> * where
+  Wit :: Natty n -> p n -> Ex p
+
+data (:*) :: (Nat -> *) -> (Nat -> *) -> (Nat -> *) where
+  (:*) :: p n -> q n -> (p :* q) n
+
+add :: Natty n -> Natty l -> Ex (AddR n l)
+add n Zy = Wit n (AddZ n)
+add n (Sy l) = case add n l of
+  Wit m a -> Wit (Sy m) (AddS a)
+
+wksThin :: n <= m -> AddR n l n' -> Ex ((<=) n' :* AddR m l)
+wksThin th (AddZ n) = let m' = bigEnd th in Wit m' (th :* AddZ m')
+wksThin th (AddS a) = case wksThin th a of
+  Wit m' (th :* a) -> Wit (Sy m') (Su th :* AddS a)
+
+thAdd :: AddR a b c -> a <= d -> b <= e -> AddR d e f -> c <= f
+thAdd abc ad (No be) (AddS def) = No (thAdd abc ad be def)
+thAdd (AddS abc) ad (Su be) (AddS def) = Su (thAdd abc ad be def)
+thAdd (AddZ _) ad Ze (AddZ _) = ad
