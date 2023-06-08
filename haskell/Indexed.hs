@@ -15,6 +15,8 @@ data Al :: (a -> *) -> * where
 data (:*) :: (a -> *) -> (a -> *) -> (a -> *) where
   (:*) :: p n -> q n -> (p :* q) n
 
+infixr 5 :*
+
 -- .. and implication
 data (:->) :: (a -> *) -> (a -> *) -> (a -> *) where
   FunI :: (p n -> q n) -> (p :-> q) n

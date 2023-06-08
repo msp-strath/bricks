@@ -51,3 +51,10 @@ vappend (AddS a) xz (yz :# y) = vappend a xz yz :# y
 No th ?^ (xs :# _) = th ?^ xs
 Su th ?^ (xs :# x) = (th ?^ xs) :# x
 Ze    ?^    VN     = VN
+
+vonly :: Vec (S Z) x -> x
+vonly (VN :# x) = x
+
+vlen :: Vec n x -> Natty n
+vlen VN = Zy
+vlen (xz :# _) = Sy (vlen xz)

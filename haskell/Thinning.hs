@@ -156,11 +156,6 @@ thicken th ph = case pub th ph of
     (Refl, Refl) <- thinEqEh th' (io $ weeEnd th)
     pure ph'
 
-wksThin :: n <= m -> AddR n l n' -> ExN ((<=) n' :* AddR m l)
-wksThin th (AddZ n) = let m' = bigEnd th in Ex (m' :* (th :* AddZ m'))
-wksThin th (AddS a) = case wksThin th a of
-  Ex (m' :* (th :* a)) -> Ex (Sy m' :* (Su th :* AddS a))
-
 -- (<=) are monoidal cat. wrt AddR
 thAdd :: AddR a b c -> a <= d -> b <= e -> AddR d e f -> c <= f
 thAdd abc ad (No be) (AddS def) = No (thAdd abc ad be def)
