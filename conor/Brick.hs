@@ -1,4 +1,4 @@
-{-# LANGUAGE DataKinds, GADTs, TypeOperators #-}
+{-# LANGUAGE DataKinds, GADTs, TypeOperators, RankNTypes, KindSignatures #-}
 
 module Brick where
 
@@ -19,7 +19,7 @@ data Sg :: Nat -> Nat -> * where
   Field :: Sg n m -> (String, Ty m) -> Sg n (S m)
 
 data Hd :: Nat -- dimensions
-        -> Nat -- n free on the left 
+        -> Nat -- n free on the left
         -> Nat -- k many fields
         -> Nat -- n + k
         -> *

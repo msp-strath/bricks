@@ -1,4 +1,4 @@
-{-# LANGUAGE DataKinds, GADTs, TypeOperators #-}
+{-# LANGUAGE DataKinds, GADTs, TypeOperators, RankNTypes, PolyKinds #-}
 
 module CoDeBruijn where
 
@@ -15,7 +15,7 @@ instance Show Nat where show = show . natI
 data Natty :: Nat -> * where
   Zy :: Natty Z
   Sy :: Natty n -> Natty (S n)
-  
+
 nattyI :: Natty n -> Int
 nattyI Zy = 0
 nattyI (Sy n) = 1 + nattyI n
