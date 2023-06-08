@@ -1,4 +1,3 @@
-{-# LANGUAGE PolyKinds, TypeOperators, GADTs, RankNTypes #-}
 module Indexed where
 
 data (==) :: a -> a -> * where

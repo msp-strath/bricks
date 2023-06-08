@@ -1,4 +1,3 @@
-{-# LANGUAGE DataKinds, GADTs, TypeOperators, RankNTypes, KindSignatures #-}
 module Thinning where
 
 import Indexed
@@ -57,7 +56,6 @@ instance Thinny ((<=) l) where
 no :: forall m. Natty m -> Z <= m
 no (Sy m) = No (no m)
 no  Zy    = Ze
-
 
 -- `Cov l r m` codes up `l <= m` and `r <= m`, such that
 -- `m` is covered
@@ -128,7 +126,6 @@ data B :: (Nat -> *) -> Nat -> * where
 bi :: p ^ S n -> B p ^ n
 bi (p :^ No th) = K p :^ th
 bi (p :^ Su th) = L p :^ th
-
 
 -- spans in (<=)
 data Span :: Nat -> Nat -> Nat -> * where

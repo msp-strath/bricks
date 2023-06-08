@@ -1,0 +1,49 @@
+cabal-version:      2.4
+name:               bricks
+version:            0.0.1.0
+
+-- A short (one-line) description of the package.
+-- synopsis:
+-- A longer description of the package.
+-- description:
+
+-- A URL where users can report bugs.
+-- bug-reports:
+
+-- The license under which the package is released.
+-- license:
+author:             Guillaume Allais, Conor McBride, Georgi Nakov, Fredrik Nordvall Forsberg
+maintainer:         fredrik.nordvall-forsberg@strath.ac.uk
+
+common haskell
+  default-extensions:  DataKinds,
+                       GADTs,
+                       PolyKinds,
+                       RankNTypes,
+                       TupleSections,
+                       TypeFamilies,
+                       TypeOperators,
+                       LambdaCase,
+                       PatternSynonyms,
+                       PatternGuards
+  build-depends:       base <5,
+                       containers,
+                       mtl,
+  ghc-options:         -Wno-noncanonical-monad-instances
+                       -Wno-noncanonical-monoid-instances
+
+library
+    import:           haskell
+
+    -- Modules included in this executable, other than Main.
+    exposed-modules:  Check,
+                      Syntax,
+                      Indexed,
+                      Natty,
+                      Thinning,
+                      Vec
+
+    -- LANGUAGE extensions used by modules in this package.
+    -- other-extensions:
+    hs-source-dirs:   haskell
+    default-language: Haskell2010

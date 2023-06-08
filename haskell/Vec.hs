@@ -1,4 +1,3 @@
-{-# LANGUAGE DataKinds, GADTs, TypeOperators, RankNTypes, KindSignatures #-}
 module Vec where
 
 import Natty
@@ -23,9 +22,9 @@ instance Traversable (Vec n) where
 instance Foldable (Vec n) where foldMap = foldMapDefault
 instance Functor (Vec n) where fmap = fmapDefault
 
-rep :: Natty n -> x -> Vec n x
-rep  Zy    x = VN
-rep (Sy n) x = rep n x :# x
+vrep :: Natty n -> x -> Vec n x
+vrep  Zy    x = VN
+vrep (Sy n) x = vrep n x :# x
 
 vzap :: forall s t n. Vec n (s -> t) -> Vec n s -> Vec n t
 vzap VN VN = VN
@@ -33,7 +32,7 @@ vzap (fz :# f) (sz :# s) = vzap fz sz :# f s
 
 -- Vec n is applicative only if we know n at runtime
 instance NATTY n => Applicative (Vec n) where
-  pure = rep natty
+  pure = vrep natty
   (<*>) = vzap
 
 instance Semigroup x => Semigroup (Vec n x) where

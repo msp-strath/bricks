@@ -1,4 +1,3 @@
-{-# LANGUAGE DataKinds, GADTs, KindSignatures, RankNTypes, TypeOperators #-}
 module Natty where
 
 import Indexed
