@@ -13,6 +13,7 @@ data Ty :: Nat -> * where
     -> Ty n
   -- note Brick isn't properly cdb yet
 
+-- left-nested record signatures (should they be right-nested?)
 data Sg :: Nat -> Nat -> * where
   One :: Sg n n
   Field :: Sg n m -> (String, Ty m) -> Sg n (S m)
@@ -110,7 +111,8 @@ goodHd ga d (Grow hz th ph a s h) = do
   -- make "legit" do that computation
   (xi, gz, ps) <- legit ga hz th ph a
   goodTy xi s
-  -- check h
+  let hty = Brick (weeEnd th) s gz
+  goodCh ga hty h
   pure (push de (s -< ps))
  where
   legit :: Cx n -> Hd d n k m -> i <= d -> l <= k -> AddR n l s
@@ -124,4 +126,7 @@ goodHd ga d (Grow hz th ph a s h) = do
     th0 <- thicken th' th
     ph0 <- thicken ph' ph
     pure (push xi (s' -< thAdd a' (io (snd ga)) ph0 a), Grow gz th0 ph0 a' s' h', Su ps)
-  
+
+goodCh :: Cx n -> Ty n -> Ch n -> Maybe ()
+goodCh ga (Record One) N = pure ()
+goodCh ga _ _ = Nothing
