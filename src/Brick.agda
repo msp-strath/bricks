@@ -34,16 +34,20 @@ data [_-_]~_ : forall {l n m} -> l <= n -> n <= m -> l <= m -> Set where
 subst : ∀ {a p} {A : Set a} (P : A → Set p) {x y} → x ≡ y → P y → P x
 subst P refl px = px
 
-K : ∀{ a } { A : Set a} { x y : A} (p q : x ≡ y) -> p ≡ q
+K : ∀ {a} {A : Set a} {x y : A} (p q : x ≡ y) -> p ≡ q
 K refl refl = refl
 
 mutual
   data _-Context-_ (dims : Nat) : (length : Nat) -> Set1 where
     eps : dims -Context- 0
-    ext : forall {m i n} -> (Gamma : dims -Context- m) (th : i <= dims) (ph : n <= m) (v : OK th ph Gamma) (T : [[ v ]] -> Set)
+    ext : forall {m i n} ->
+          (Gamma : dims -Context- m)
+          (th : i <= dims) (ph : n <= m)
+          (v : OK th ph Gamma)
+          (T : [[ v ]] -> Set)
         -> dims -Context- suc m
 
-  data OK {dims : Nat} {i : Nat} (th : i <= dims) : forall {m n} -> (ph : n <= m) (Gamma : dims -Context- m) -> Set where
+  data OK {dims i : Nat} (th : i <= dims) : forall {m n} -> (ph : n <= m) (Gamma : dims -Context- m) -> Set where
     zero : OK th zero eps
     no : forall {m n i' n'}
        -> {ph : n <= m} {Gamma : dims -Context- m}
@@ -59,22 +63,24 @@ mutual
         -> ⟨ [_- ph ]~ ph' ⟩
         -> OK th (suc ph) (ext Gamma th' ph' v' T')
 
-  [[_]] : {dims : Nat}{i : Nat}{th : i <= dims} -> forall {m n} -> {ph : n <= m} {Gamma : dims -Context- m} -> OK th ph Gamma -> Set
+  [[_]] : {dims i : Nat} {th : i <= dims} ->
+          forall {m n} -> {ph : n <= m} {Gamma : dims -Context- m} -> OK th ph Gamma -> Set
   [[ zero ]] = ⊤
   [[ no v ]] = [[ v ]]
   [[ suc {v' = v'} {T'} v ⟨th⟩ ⟨ph⟩ ]] =  Σ [[ v ]] \ x -> T' (select v' v ⟨th⟩ ⟨ph⟩ x)
 
-  select : forall {dims} {i} {th : i <= dims} {m} {n} {i'} {n'}
-         -> {ph : n <= m} {Gamma : dims -Context- m}
+  select : forall {dims} {i} {m} {n} {i'} {n'}
+         -> {Gamma : dims -Context- m}
             {th' : i' <= dims} {ph' : n' <= m} (v' : OK th' ph' Gamma)
-            (v : OK th ph Gamma) (⟨th⟩ : ⟨ [_- th ]~ th' ⟩)
-            (⟨ph⟩ : ⟨ [_- ph ]~ ph' ⟩)
+            {th : i <= dims}   {ph : n <= m}   (v : OK th ph Gamma)
+            (⟨th⟩ : ⟨ [_- th ]~ th' ⟩) (⟨ph⟩ : ⟨ [_- ph ]~ ph' ⟩)
          -> [[ v ]]
          -> [[ v' ]]
   select zero zero ⟨th⟩ ⟨ph⟩ x = tt
   select (no v') (no v) ⟨th⟩ (_ , nr ⟨ph⟩) x = select v' v ⟨th⟩ (_ , ⟨ph⟩) x
   select (no v') (suc v x1 x2) ⟨th⟩ (_ , nl ⟨ph⟩) (x , _)= select v' v ⟨th⟩ (_ , ⟨ph⟩) x
-  select (suc {v' = v''} {T'} v' ⟨th'⟩ ⟨ph'⟩) (suc v ⟨th''⟩ ⟨ph''⟩) ⟨th⟩ (_ , suc ⟨ph⟩) (x , t) = ( select v' v ⟨th⟩ (_ , ⟨ph⟩) x) , subst T' (coherence v'' v' ⟨th'⟩ ⟨ph'⟩ v  ⟨th''⟩ ⟨ph''⟩ ⟨th⟩ (_ , ⟨ph⟩) x) t
+  select (suc {v' = v''} {T'} v' ⟨th'⟩ ⟨ph'⟩) (suc v ⟨th''⟩ ⟨ph''⟩) ⟨th⟩ (_ , suc ⟨ph⟩) (x , t)
+    = ( select v' v ⟨th⟩ (_ , ⟨ph⟩) x) , subst T' (coherence v'' v' ⟨th'⟩ ⟨ph'⟩ v  ⟨th''⟩ ⟨ph''⟩ ⟨th⟩ (_ , ⟨ph⟩) x) t
 
   coherence : ∀ {dims} {i} {th : i <= dims} {i'} {th' : i' <= dims}
               {m} {n} { i''} {n'} {ph : n <= m} {Gamma : dims -Context- m}
