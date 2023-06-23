@@ -56,7 +56,8 @@ interleaved mutual
     (Delta : ldims -Context- llen) ->
     Set1
 
-  data _<=[_]_ :
+  --data
+  _<=[_]_ :
     {wdims wlen ldims llen : Nat}
     {Gamma : wdims -Context- wlen} ->
     {th : wdims <= ldims} {ph : wlen <= llen}
@@ -77,9 +78,7 @@ interleaved mutual
     zero : {wdims ldims : Nat} {th : wdims <= ldims} ->
            eps <=[ th ∣ zero ] eps
 
-  data _<=[_]_ where
-    zero : {wdims ldims : Nat} {th : wdims <= ldims} ->
-           tt <=[ zero {th = th} ] tt
+  tt <=[ zero ] tt = ⊤
 
   -- 2. context extension
   data _-Context-_ dims where
@@ -138,82 +137,40 @@ interleaved mutual
 
           ext Gamma wFPh T <=[ th ∣ suc ph ] ext Delta lFPh T
 
-{-
-  data _<=[_]_ where
-    suc :
--}
+  gamma <=[ no Th ] (delta , _) = gamma <=[ Th ] delta
+  (gamma , xi , _ , t) <=[ suc Th v w {T = T} ] (delta , xi' , _ , t') =
+    Σ (gamma  <=[ Th ] delta)
+    \ _ -> _≡_  {_} {⟨ T ⟩} (_ , t) (_ , t')
 
+select : {wdims ldims wlen llen : Nat}
+    {Gamma : wdims -Context- wlen}
+    {th : wdims <= ldims}{ph : wlen <= llen}
+    {Delta : ldims -Context- llen}
+    (Ph : Gamma <=[ th ∣ ph ] Delta) ->
+    (xs : [[ Delta ]]) ->
+    ⟨ _<=[ Ph ] xs ⟩
 
-{-
-mutual
-  data _-Context-_ (dims : Nat) : (length : Nat) -> Set1 where
-    eps : dims -Context- 0
-    ext : forall {m i n} ->
-          (Gamma : dims -Context- m)
-          (th : i <= dims) (ph : n <= m)
-          (v : OK th ph Gamma)
-          (T : [[ v ]] -> Set)
-        -> dims -Context- suc m
+triangle :  forall {wdims} {ldims} {th : wdims <= ldims} {wlen} {llen}
+              {Gamma : wdims -Context- wlen} {ph : wlen <= llen}
+              {Delta : ldims -Context- llen} (Ph : Gamma <=[ th ∣ ph ] Delta)
+              {xs : [[ Delta ]]} {ys : [[ Gamma ]]}
+              (q : ys <=[ Ph ] xs) {fdims} {flen} {Xi : fdims -Context- flen}
+              {wfth : fdims <= wdims} {lfth : fdims <= ldims}
+              (v : [ wfth - th ]~ lfth) {wfph : flen <= wlen}
+              {lfph : flen <= llen} (w : [ wfph - ph ]~ lfph)
+              (wFPh : Xi <=[ wfth ∣ wfph ] Gamma)
+              (lFPh : Xi <=[ lfth ∣ lfph ] Delta) {xi : [[ Xi ]]}
+              (p : xi <=[ lFPh ] xs) ->
+       xi <=[ wFPh ] ys
 
-  data OK {dims i : Nat} (th : i <= dims) : forall {m n} -> (ph : n <= m) (Gamma : dims -Context- m) -> Set where
-    zero : OK th zero eps
-    no : forall {m n i' n'}
-       -> {ph : n <= m} {Gamma : dims -Context- m}
-       -> {th' : i' <= dims} {ph' : n' <= m}
-       -> {v' : OK th' ph' Gamma} {T' : [[ v' ]] -> Set}
-       -> OK th ph Gamma -> OK th (no ph) (ext Gamma th' ph' v' T')
-    suc : forall {m n i' n'}
-        -> {ph : n <= m} {Gamma : dims -Context- m}
-        -> {th' : i' <= dims} {ph' : n' <= m}
-        -> {v' : OK th' ph' Gamma} {T' : [[ v' ]] -> Set}
-        -> OK th ph Gamma
-        -> ⟨ [_- th ]~ th' ⟩
-        -> ⟨ [_- ph ]~ ph' ⟩
-        -> OK th (suc ph) (ext Gamma th' ph' v' T')
+select zero tt = _
+select (no Ph) (xs , _) = select Ph xs
+select (suc Ph v w {wFPh} {lFPh}) (xs , xi , p , t)
+  with ys , q <- select Ph xs
+  = (ys , xi , triangle Ph q v w wFPh lFPh p , t) , q , refl
 
-  [[_]] : {dims i : Nat} {th : i <= dims} ->
-          forall {m n} -> {ph : n <= m} {Gamma : dims -Context- m} -> OK th ph Gamma -> Set
-  [[ zero ]] = ⊤
-  [[ no v ]] = [[ v ]]
-  [[ suc {v' = v'} {T'} v ⟨th⟩ ⟨ph⟩ ]] =  Σ [[ v ]] \ x -> T' (select v' v ⟨th⟩ ⟨ph⟩ x)
-
-  select : forall {dims} {i} {m} {n} {i'} {n'}
-         -> {Gamma : dims -Context- m}
-            {th' : i' <= dims} {ph' : n' <= m} (v' : OK th' ph' Gamma)
-            {th : i <= dims}   {ph : n <= m}   (v : OK th ph Gamma)
-            (⟨th⟩ : ⟨ [_- th ]~ th' ⟩) (⟨ph⟩ : ⟨ [_- ph ]~ ph' ⟩)
-         -> [[ v ]]
-         -> [[ v' ]]
-  select zero zero ⟨th⟩ ⟨ph⟩ x = tt
-  select (no v') (no v) ⟨th⟩ (_ , nr ⟨ph⟩) x = select v' v ⟨th⟩ (_ , ⟨ph⟩) x
-  select (no v') (suc v x1 x2) ⟨th⟩ (_ , nl ⟨ph⟩) (x , _)= select v' v ⟨th⟩ (_ , ⟨ph⟩) x
-  select (suc {v' = v''} {T'} v' ⟨th'⟩ ⟨ph'⟩) (suc v ⟨th''⟩ ⟨ph''⟩) ⟨th⟩ (_ , suc ⟨ph⟩) (x , t)
-    = ( select v' v ⟨th⟩ (_ , ⟨ph⟩) x) , subst T' (coherence v'' v' ⟨th'⟩ ⟨ph'⟩ v  ⟨th''⟩ ⟨ph''⟩ ⟨th⟩ (_ , ⟨ph⟩) x) t
-
-  coherence : ∀ {dims} {i} {th : i <= dims} {i'} {th' : i' <= dims}
-              {m} {n} { i''} {n'} {ph : n <= m} {Gamma : dims -Context- m}
-              {th'' : i'' <= dims} {ph' : n' <= m}
-              (v'' : OK th'' ph' Gamma)
-              (v' : OK th' ph Gamma) (⟨th'⟩ : ⟨ [_- th' ]~ th'' ⟩)
-              (⟨ph'⟩ : ⟨ [_- ph ]~ ph' ⟩) {n1} {ph1 : n1 <= m}
-              (v : OK th ph1 Gamma) (⟨th''⟩ : ⟨ [_- th ]~ th'' ⟩)
-              (⟨ph''⟩ : ⟨ [_- ph1 ]~ ph' ⟩) (⟨th⟩ : ⟨ [_- th ]~ th' ⟩)
-              (⟨ph⟩ : ⟨ [_- ph1 ]~ ph ⟩) (x : [[ v ]]) ->
-            select v'' v' ⟨th'⟩ ⟨ph'⟩ (select v' v ⟨th⟩ ⟨ph⟩ x) ≡
-            select v'' v ⟨th''⟩ ⟨ph''⟩ x
-  coherence zero zero ⟨th'⟩ ⟨ph'⟩ zero ⟨th''⟩ ⟨ph''⟩ ⟨th⟩ ⟨ph⟩ x = refl
-  coherence (no v'') (no v') ⟨th'⟩ (_ , nr ⟨ph'⟩) (no v) ⟨th''⟩ (_ , nr ⟨ph''⟩) ⟨th⟩ (_ , nr ⟨ph⟩) x = coherence v'' v' ⟨th'⟩ (_ , ⟨ph'⟩) v ⟨th''⟩ (_ , ⟨ph''⟩) ⟨th⟩ (_ , ⟨ph⟩) x
-  coherence (no v'') (no v') ⟨th'⟩ (_ , nr ⟨ph'⟩) (suc v x1 x2) ⟨th''⟩ (_ , nl ⟨ph''⟩) ⟨th⟩ (_ , nl ⟨ph⟩) (x , _) = coherence v'' v' ⟨th'⟩ (_ , ⟨ph'⟩) v ⟨th''⟩ (_ , ⟨ph''⟩) ⟨th⟩ (_ , ⟨ph⟩) x
-  coherence (no v'') (suc v' x1 x2) ⟨th'⟩ (_ , nl ⟨ph'⟩) (suc v x3 x4) ⟨th''⟩ (_ , nl ⟨ph''⟩) ⟨th⟩ (_ , suc ⟨ph⟩) (x , _) = coherence v'' v' ⟨th'⟩ (_ , ⟨ph'⟩) v ⟨th''⟩ (_ , ⟨ph''⟩) ⟨th⟩ (_ , ⟨ph⟩) x
-  coherence (suc {v' = v'''} v'' x1 x2) (suc {v' = v1} v' x3 x4) ⟨th'⟩ (_ , suc ⟨ph'⟩) (suc  {v' = v2} v x5 x6) ⟨th''⟩ (_ , suc ⟨ph''⟩) ⟨th⟩ (_ , suc ⟨ph⟩) (x , t)
-    with p <- (coherence v''' v'' x1 x2 v' x3 x4 ⟨th'⟩ (_ , ⟨ph'⟩) (select v' v ⟨th⟩ (_ , ⟨ph⟩) x))
-       | q <- (coherence v''' v' x3 x4 v x5 x6 ⟨th⟩ (_ , ⟨ph⟩) x)
-       | r <- (coherence v''' v'' x1 x2 v x5 x6 ⟨th''⟩ (_ , ⟨ph''⟩) x)
-       | s <- (coherence v'' v' ⟨th'⟩ (_ , ⟨ph'⟩) v ⟨th''⟩ (_ , ⟨ph''⟩) ⟨th⟩ (_ , ⟨ph⟩) x)
-    with u <- (select v' v ⟨th⟩ (_ , ⟨ph⟩) x)
-    with v <- (select v'' v' ⟨th'⟩ (_ , ⟨ph'⟩) u)
-    with refl <- s
-    with ql <- select v''' v' x3 x4 u
-    with refl <- p
-    with refl <- K q r
-    = refl
+triangle (no Ph) q v (nr w) wFPh (no lFPh) p = triangle Ph q v w wFPh lFPh p
+triangle (suc Ph _ _) (q , _) v (nl w) (no wFPh) (no lFPh) p = triangle Ph q v w wFPh lFPh p
+triangle (suc Ph _ _) (q , refl) v (suc w) (suc wFPh _ _) (suc lFPh _ _) (p , refl)
+  = triangle Ph q v w wFPh lFPh p , refl
+triangle zero q v zero zero zero p = _
