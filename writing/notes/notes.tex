@@ -146,56 +146,56 @@ We now have the means to distinguish the header telescope for $\Alll$, namely $\
 
 \section{one-dimensional bricks}
 
-Let us start by giving some examples, then back-fill the general scheme. Brick types look a little like \emph{parallel} comprehensions. $\Li X$ is a trivial comprehension, which makes it hard to notice that it is a comprehension at all.
+Let us start by giving some examples, then back-fill the general scheme. Brick types look a little like \emph{parallel} comprehensions, but with the generators left of the value. $\Li\:X$ is a trivial comprehension, which makes it hard to notice that it is a comprehension at all.
 \[
-  [X\st\emp]
+  [\emp\st X]
 \]
-(Indeed, we could even allow the omission of the $\st$ when the header context is empty, to fool Haskell programmers into thinking that nothing unusual is happening.)
+Indeed, we could even allow the omission of the $\st$ when the header context is empty, to fool Haskell programmers into thinking that nothing unusual is happening. Let us do so, and also omit ``$\emp,$'', wherever it would otherwise clutter the left end of a nonempty context.
   
 However, $\All\:P\:\xs$ is more clearly a comprehension
 \[
-  [P\:x\st \emp, x\hb X\from\xs]
+  [x\hb X\from\xs\st P\:x]
   \quad\mbox{where}\quad
-  [X\st\emp]\ni \xs
+  [X]\ni \xs
 \]
 $\ListR\:R\:\xs\:\ys$ is
 \[
-  [R\:x\:y\st \emp, x\hb X\from\xs, y\hb Y\from\ys]
+  [x\hb X\from\xs, y\hb Y\from\ys\st R\:x\:y ]
   \quad\mbox{where}\quad
-  [X\st\emp]\ni \xs, [Y\st\emp]\ni \ys
+  [X]\ni \xs, [Y]\ni \ys
 \]
 and $\Alll\:Q\:\xs\:\ps$ is
 \[
-  [Q\:x\:p\st \emp, x\hb X\from\xs, p\hb x.P\:x\from\ps]
+  [x\hb X\from\xs, p\hb x.P\:x\from\ps\st Q\:x\:p]
   \quad\mbox{where}\quad
-  [X\st\emp]\ni \xs, [P\:x\st x\hb X\from\xs]\ni \ps
+  [X]\ni \xs, [x\hb X\from\xs\st P\:x]\ni \ps
 \]
 
 That is, we annotate each entry in the header context with the brick it is drawn from, so $\Delta\from\vec\ys$ and extend the $\sel$ operator accordingly. Whenever we extend to $\Delta\from\vec\ys,y\hb\vec x.S\from \ys$, we should have
 \[
-  [S\st \vec x\sel(\Delta\from\vec ys)]\ni ys
+  [\vec x\sel(\Delta\from\vec ys)\st S]\ni ys
 \]
 We have come good on the idea that the explicit dependencies are what distinguish the header brick types in $\ListR$ and $\Alll$.
 
 \begin{defn}[one-dimensional brick type]
   The type
   \[
-    [T\sel\Delta\from\vec\ys]
+    [\Delta\from\vec\ys\st T]
   \]
   is a valid one-dimensional brick type if $\Delta\from\vec\ys$ is a valid sequence of headers and $\Delta\vdash\Ty\ni T$.
-  The empty sequence $\emp$ is a valid sequence of headers. If $\Delta\from\vec\ys$ is a valid sequence of headers, we may validly extend it to $\Delta\from\vec\ys,y\hb\vec x.S\from \ys$ if $\vec x\sel\Delta\vdash \Ty\ni S$ and $[S\st\vec x\sel(\Delta\from\vec\ys)]\ni\ys$.
+  The empty sequence $\emp$ is a valid sequence of headers. If $\Delta\from\vec\ys$ is a valid sequence of headers, we may validly extend it to $\Delta\from\vec\ys,y\hb\vec x.S\from \ys$ if $\vec x\sel\Delta\vdash \Ty\ni S$ and $[\vec x\sel(\Delta\from\vec\ys)\st S]\ni\ys$.
 \end{defn}
 
 Now, what is a brick in such a type? The rules may seem straightforward, but they disguise a mathematician's vacuity joke.
 \begin{defn}[one-dimensional brick]
   One-dimensional bricks are constructed from $\nil$ and $\cdot\cons\cdot$ in accordance with the rules:
   \[
-  [T\st\Delta\from\vec\nil]\ni\nil
+  [\Delta\from\vec\nil\st T]\ni\nil
   \]
   (i.e., the brick may be $\nil$ if all the headers are)
   \[
-    [T\st\Delta\from(\vec s\cons\vec\ss)]\ni t\cons\ts \IF
-    T\{\vec s/\Delta\}\ni t, [T\st\Delta\from\vec\ss]\ni \ts
+    [\Delta\from(\vec s\cons\vec\ss)\st T]\ni t\cons\ts \IF
+    T\{\vec s/\Delta\}\ni t, [\Delta\from\vec\ss\st T]\ni \ts
   \]
   (i.e., the brick may be a $\cdot\cons\cdot$ if all the headers are, with the brick head's type being the cell type instantiated with the header heads)
 \end{defn}
@@ -206,14 +206,14 @@ Note that whenever the header sequence is $\emp$, \emph{both} of these condition
 
 Suitably warmed up, let us now extend the notion of brick to any number of dimensions including zero. We open up the \emph{left} panel of the triptych and write $\Matrix\:R\:\xs\:\ys$ as
 \[
-[i\s j\st R\:x\:y \st i\g x\hb X\from\xs, j\g y\hb Y\from\ys]
+[i\s j \st i\g x\hb X\from\xs, j\g y\hb Y\from\ys\st R\:x\:y]
 \]
 The names $i$ and $j$ are the binding sites of the dimensions used to annotate the headers, and they are subject to $\alpha$-equivalence. Again, it would suffice to identify the \emph{number} of dimensions and give for each header a bit vector indicating which dimensions it exists in, but that would be less friendly to humans.
 
 \begin{defn}[brick type]
   A brick type has the form
   \[
-  [\vec i \st T \st \Gamma]
+  [\vec i \st \Gamma \st T]
   \]
   where each entry in $\Gamma$ is of form
   \[
@@ -224,20 +224,27 @@ The names $i$ and $j$ are the binding sites of the dimensions used to annotate t
   \item the dimensions $\vec j$ of $y$ selected from $\vec i$
   \item the dependencies $\vec x$ of $y$ selected from $\Gamma$ left of $y$ such that the dimensions of each $x$ are selected from $\vec j$ and the dependencies of each $x$ are selected from $\vec x$
   \item $\vec x\sel\Gamma \vdash \Ty \ni S$
-  \item $[\vec j\st S\st \vec x\sel\Gamma] \ni \ss$
+  \item $[\vec j\st \vec x\sel\Gamma\st S] \ni \ss$
   \end{itemize}
   and where $\Gamma\vdash \Ty\ni T$.
 \end{defn}
 
-We note that $[|T|]$ is a brick type when $\Ty\ni T$ and consider it to be the same type as $X$. Indeed, this allows us to have \emph{zero}-dimensional headers instantiated by single values. $[|T|\Delta\from\vec s] = T\{\vec s/\Delta\}$. We may maintain the convention that a brick type with at most one $\st$ has one unnamed dimension with which all headers align.
+We note that $[\st\st T]$ is a brick type when $\Ty\ni T$ and consider it to be the same type as $X$. Indeed, this allows us to have \emph{zero}-dimensional headers instantiated by single values. $[\st\Delta\from\vec s\st T] = T\{\vec s/\Delta\}$.
 
-Headerless types exist at higher dimensions. $[i\s j\st T \st]$ is the type of rectangular arrays of $T$ cells with unspecified size. This raises two problems:
+For notational convenience, let us adopt the following conventions for omitting $\st$:
+\begin{itemize}
+\item The left $\st$ may be omitted if there is exactly \emph{one} dimension and all headers align with it. (Hence, we preserve our prior notation for one-dimensional brick types.)
+\item If the header context is $\emp$, we may omit $\emp\st$.
+\item We forbid the situation $[|T]$, where it is not clear whether the omitted $\st$ is the left (yielding lists of $T$ --- $[T]$ does that job) or the right (yielding $T$ itself --- use $[||T]$ or just plain $T$).
+\end{itemize}
+
+Headerless types exist at higher dimensions. $[i\s j\st \st T]$ is the type of rectangular arrays of $T$ cells with unspecified size. This raises two problems:
 \begin{itemize}
 \item How do we exclude \emph{ragged} lists of lists?
 \item How do we ensure that the \emph{empty} list of lists is invertibly transposable?
 \end{itemize}
 
-All of our bricks should have \emph{one} size in each of their dimensions, whether or not that size is fixed by a size of a header. In theory, the typechecker can guess these sizes $n_i$ for each dimension $i$ by magic and insert an extra header $i\g\_:1\from n_i$ in each dimension (recalling that $[1]$ acts as the type of natural numbers). In practice, the typechecker can guess these sizes, for the most part, by a particularly degenerate form of unification. However, these sizes are accessible at run-time: you can always compute the number of $\cons$es in the outermost layer, and you should always be able to reorder the layers by any permutation of the dimensions. In Hindley-Milner polymorphism, parametricity allows us to generalize over anything which survives type inference unconstrained, but here (as with Haskell type classes in the notorious \texttt{show.read} example), failure to infer sizes is an error.
+All of our bricks should have \emph{one} size in each of their dimensions, whether or not that size is fixed by a size of a header. In theory, every brick should be given as the dependent pair of an explicit size vector and a nested list giving the contents. In practice, the typechecker can guess these sizes, for the most part, by a particularly degenerate form of unification. However, these sizes are accessible at run-time: you can always compute the number of $\cons$es in the outermost layer, and you should always be able to reorder the layers by any permutation of the dimensions. In Hindley-Milner polymorphism, parametricity allows us to generalize over anything which survives type inference unconstrained, but here (as with Haskell type classes in the notorious \texttt{show.read} example), failure to infer sizes is an error.
 
 Correspondingly, there must be a way to give the missing sizes whenever a brick is degenerate. Whenever an outer layer is of size zero, we should be able to write its `nil' as $[\times n_i\ldots\times n_k]$ to fill in the sizes of the inner layers. That is, $[\times 2]$ is a $0\times 2$ rectangle, and its transpose is $\nil\cons\nil\cons\nil$.
 
