@@ -18,6 +18,8 @@
 
 \newcommand{\nil}{[]}
 \newcommand{\cons}{\mbox{$,\!\textrm{-}$}}
+\newcommand{\ms}{\mathit{ms}}
+\newcommand{\ns}{\mathit{ns}}
 \newcommand{\xs}{\mathit{xs}}
 \newcommand{\ys}{\mathit{ys}}
 \newcommand{\ps}{\mathit{ps}}
@@ -25,7 +27,9 @@
 \newcommand{\rs}{\mathit{rs}}
 \renewcommand{\ss}{\mathit{ss}}
 \newcommand{\ts}{\mathit{ts}}
+\newcommand{\tss}{\mathit{tss}}
 \newcommand{\D}{\mathbf}
+\newcommand{\F}{\mathrm}
 \newcommand{\Ty}{\mathbf{Ty}}
 \newcommand{\Li}{\D{List}}
 \newcommand{\All}{\D{All}}
@@ -42,10 +46,11 @@
 \newcommand{\st}{\;|\;}
 \newcommand{\g}{\:}
 \newcommand{\s}{\:}
+\newcommand{\siz}{\#}
 
 \section{introduction}
 
-The humble cons-list was, for many years, the workhorse of functional programming, being a means to capture free monoid structure in some (arbitrarily biased) canonical form. (We write its values $\nil$ for them empty list and $x\cons\xs$ for the list with head $x$ and tail $\xs$. Everyone else uses a \emph{symmetric} symbol for $\cons$ --- their teaching assistants weep as their students mistake it for a symmetric operation.) With the advent of fancy (dependent or otherwise) type systems, the world of list-like types has exploded, with many dimensions of variation, e.g.,
+The humble cons-list was, for many years, the workhorse of functional programming, being a means to capture free monoid structure in some (arbitrarily biased) canonical form. (We write its values $\nil$ for them empty list and $x\cons\xs$ for the list with head $x$ and tail $\xs$. Everyone else uses a \emph{symmetric} symbol for $\cons$ --- their teaching assistants weep as their students mistake it for a symmetric operation. We retain the standard $[a,b,c]$ notation for $\nil$-terminated lists $a\cons b\cons c\cons\nil$) With the advent of fancy (dependent or otherwise) type systems, the world of list-like types has exploded, with many dimensions of variation, e.g.,
 \begin{description}
 \item[dimensions] two-dimensional matrices, and even higher-dimensional cuboids, can be seen as nested lists, with types imposing varying degrees of
 \item[coherence] meaning the extent to which we enforce non-raggedness, by whatever means, but notably
@@ -246,9 +251,64 @@ Headerless types exist at higher dimensions. $[i\s j\st \st T]$ is the type of r
 
 All of our bricks should have \emph{one} size in each of their dimensions, whether or not that size is fixed by a size of a header. In theory, every brick should be given as the dependent pair of an explicit size vector and a nested list giving the contents. In practice, the typechecker can guess these sizes, for the most part, by a particularly degenerate form of unification. However, these sizes are accessible at run-time: you can always compute the number of $\cons$es in the outermost layer, and you should always be able to reorder the layers by any permutation of the dimensions. In Hindley-Milner polymorphism, parametricity allows us to generalize over anything which survives type inference unconstrained, but here (as with Haskell type classes in the notorious \texttt{show.read} example), failure to infer sizes is an error.
 
-Correspondingly, there must be a way to give the missing sizes whenever a brick is degenerate. Whenever an outer layer is of size zero, we should be able to write its `nil' as $[\times n_i\ldots\times n_k]$ to fill in the sizes of the inner layers. That is, $[\times 2]$ is a $0\times 2$ rectangle, and its transpose is $\nil\cons\nil\cons\nil$.
+Correspondingly, there must be a way to give the missing sizes whenever a brick is degenerate. Whenever an outer layer is of size zero, we should be able to write its `nil' as $[\times n_i\ldots\times n_k]$ to fill in the sizes of the inner layers. That is, $[\times 2]$ is a $0\times 2$ rectangle, and its transpose is $[\nil,\nil]$.
+
+We are nearly in a position to define, formally, what constitutes an $n$-dimensional brick for positive $n$. The $0$-dimensional bricks are given already by the types to which they degenerate. We shall need some auxiliary operations which compute the types of heads and tails of bricks.
 
 
+\newcommand{\hsel}[2]{#2^{#1,}}
+\newcommand{\tsel}[2]{#2^{#1-}}
+\begin{defn}[head brick type]
+  The partial operation $\F{Head}$ maps $(1+n)$-dimensional brick types to $n$-dimensional brick types. In particular, it maps
+  \[[i\:\vec i \st \Gamma \st T] \quad\mapsto\quad
+    [\vec i \st \Gamma_i \st T\sigma]\quad \mbox{where}\quad (\Gamma_i,\sigma) = \hsel i\Gamma
+  \]
+  The head selector operator $\hsel i \Gamma$ computes a subcontext $\Gamma_i$ and a substitution $\sigma$ recursively thus:
+  \[\begin{array}{rcl}
+  \hsel i\emp & = & (\emp, \{\}) \\
+  \hsel i{(\Gamma,i\:\vec j\g y\hb\vec x.S\from (1+n)\cons\ns\siz s\cons\ss)} & = &
+  (\Gamma_i, \sigma\{s/y\}) \\
+  \hsel i{(\Gamma,\vec j\g y\hb\vec x.S\from \ns\siz\ss)} & = &
+  ((\Gamma_i,\vec j\g y\hb\vec x.S\from \ns\siz\ss), \sigma) \\  
+  \end{array}\]
+\end{defn}
+That is, in the head brick type, all the variables in the header context marked with the outermost dimension must be selected from conses, so they may be removed from the header context and substituted with the heads of those conses. The headers not in the outermost dimension stay just as they are.
+
+\begin{defn}[tail brick type]
+  The partial operation $\F{Tail}$ maps $(1+n)$-dimensional brick types to $1+n$-dimensional brick types. In particular, it maps
+  \[[i\:\vec i \st \Gamma \st T] \quad\mapsto\quad
+    [i\:\vec i \st \tsel i\Gamma \st T]
+  \]
+  The tail selector operator $\tsel i \Gamma$ decapitates a context thus:
+  \[\begin{array}{rcl}
+  \tsel i\emp & = & \emp \\
+  \tsel i{(\Gamma,i\:\vec j\g y\hb\vec x.S\from (1+n)\cons\ns\siz s\cons\ss)} & = &
+    \tsel i\Gamma, i\:\vec j\g y\hb\vec x.S\from n\cons\ns\siz\ss \\
+  \tsel i{(\Gamma,\vec j\g y\hb\vec x.S\from \ns\siz\ss)} & = &
+    \tsel i\Gamma,\vec j\g y\hb\vec x.S\from \ns\siz\ss \\  
+  \end{array}\]
+\end{defn}
+That is, in the tail brick type, the headers in the outermost dimension lose their heads, while the headers not in that dimension stay just as they are.
+
+\begin{defn}[brick]
+The $n$-dimensional brick type
+\[
+  [\vec i \st \Gamma \st T]
+\]
+admits bricks of form
+\[\ms\siz\tss
+\]
+where
+\begin{itemize}
+\item $\ms$ is a vector of natural numbers of length $n$ (also the length of $\vec i$);
+\item $\tss$ is $n$-layer nested vector of values (whose types will be given shortly);
+\item for each $\vec j\g y\hb\vec x.S\from \ns\siz\ss$ in $\Gamma$, $\vec j\sel\ms = \ns$;
+\item $\tss = []$ if $\ms = 0\cons\ms'$;
+\item $\tss = \ts\cons\tss'$ if $\ms = (1+m)\cons\ms'$ and $\vec i = i\:{\vec i}'$ and
+  $\F{Head}([\vec i \st \Gamma \st T]) \ni \ms'\siz\ts$ and
+  $\F{Tail}([\vec i \st \Gamma \st T]) \ni m\cons\ms'\siz\tss'$.
+\end{itemize}
+\end{defn}
 
 
 \end{document}
