@@ -333,6 +333,14 @@ _ = `cons 1 (`cons 2 `nil)
       (suc k :: _) -> px
       (no k :: _)  -> pxs (k :: [])
 
+unzip : forall {a : Set} {p : a -> Set} ->
+        `list (Σ a p) -> Σ (`list a) (`all p)
+unzip (m :: [] , _ , aps)
+  = (m :: [] , _ , \ where (k :: []) -> fst (aps (k :: [])))
+  , m :: []
+  , (_ , suc zero)
+  , \ where (k :: []) -> snd (aps (k :: []))
+
 `relTy : forall {a b : Set} -> (a -> b -> Set) → BrickTy
 `relTy {a} {b} r =
   mkBrickTy 1
@@ -409,3 +417,19 @@ transpose (m :: n :: [] , ((_ , suc (no zero)) , no (suc zero)) , rxsys)
   = n :: m :: []
   , ((_ , suc (no zero)) , no (suc zero))
   , \ where (k :: l :: []) -> rxsys (l :: k :: [])
+
+mult : forall {a b c : Set}
+       {r : a -> b -> Set}
+       {s : b -> c -> Set}
+       {xs ys zs} ->
+       `mat r xs ys -> `mat s ys zs ->
+       `mat (λ x z → `all (λ y → Σ (r x y) \ _ -> s y z) ys) xs zs
+mult
+  (m :: n :: [] , ((_ , suc (no zero)) , no (suc zero)) , rxsys)
+  (n :: p :: [] , ((_ , suc (no zero)) , no (suc zero)) , syszs)
+  = m :: p :: []
+  , ((_ , suc (no zero)) , no (suc zero))
+  , \ where
+    (x :: z :: []) ->
+      n :: [] , (_ , suc zero) , \ where
+       (y :: []) -> rxsys (x :: y :: []) , syszs (y :: z :: [])
