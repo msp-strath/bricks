@@ -291,3 +291,43 @@ _∋[_,_] {ctx = eps} vs ns hds = {!!}
 _∋[_,_] {ctx = ext ctx sel T} vs ns (hds , brk)
   = {!!}
 -}
+
+
+`listTy : Set → BrickTy
+`listTy a = mkBrickTy 1 eps (\ _ -> a)
+
+`list : Set → Set
+`list a = Brick (`listTy a) _
+
+`nil : ∀ {a} → `list a
+`nil = (0 :: []) , (_ , \ where (() :: _))
+
+`cons : ∀ {a} → a → `list a → `list a
+`cons x (n :: [] , _ , xs)
+  = suc n :: [] , _ , \ where
+      (suc k :: _) -> x
+      (no k :: _)  -> xs (k :: [])
+
+_ : `list Nat
+_ = `cons 1 (`cons 2 `nil)
+
+`allTy : forall {a : Set} -> (a -> Set) → BrickTy
+`allTy {a} p =
+  mkBrickTy 1 (ext eps (zero {th = suc zero}) \ _ -> a)
+  λ (_ , _ , _ , x) → p x
+
+`all : forall {a : Set} → (a → Set) → (`list a → Set)
+`all p xs = Brick (`allTy p) (_ , xs)
+
+`nilp : forall {a : Set} {p : a -> Set} ->
+        `all p `nil
+`nilp = 0 :: [] , ((_ , suc zero) , \ where (() :: []))
+
+`consp : forall {a : Set} {p : a -> Set} {x xs} ->
+         p x -> `all p xs -> `all p (`cons x xs)
+`consp {xs = n' :: [] , _ , xs} px (n :: [] , (_ , suc zero) , pxs)
+  = suc n :: []
+  , (_ , suc zero)
+  ,  \ where
+      (suc k :: _) -> px
+      (no k :: _)  -> pxs (k :: [])
