@@ -86,13 +86,13 @@ interleaved mutual
   data _-Context-_ dims where
     ext : forall {wdims wlen llen} ->
           (Gamma : dims -Context- llen)
-          {th : wdims <= dims} {ph : wlen <= llen}
+          (th : wdims <= dims) {ph : wlen <= llen}
           {Delta : wdims -Context- wlen}
         -> Delta <=[ th ∣ ph ] Gamma
         -> (T : [[ Delta ]] -> Set)
         -> dims -Context- suc llen
 
-  [[ ext Gamma Ph T ]]
+  [[ ext Gamma th Ph T ]]
     = Σ [[ Gamma ]] λ gamma → ⟨ (_<=[ Ph ] gamma) × T ⟩
 
   data _<=[_∣_]_ where
@@ -111,7 +111,7 @@ interleaved mutual
          {T : [[ Xi ]] -> Set} ->
 
          -- throwing T away
-         Gamma <=[ th ∣ no ph ] ext Delta FPh T
+         Gamma <=[ th ∣ no ph ] ext Delta fth FPh T
 
     suc : {wdims ldims wlen llen : Nat}
           {Gamma : wdims -Context- wlen}
@@ -137,7 +137,7 @@ interleaved mutual
 
           {T : [[ Xi ]] -> Set} ->
 
-          ext Gamma wFPh T <=[ th ∣ suc ph ] ext Delta lFPh T
+          ext Gamma wfth wFPh T <=[ th ∣ suc ph ] ext Delta lfth lFPh T
 
   gamma <=[ no Th ] (delta , _) = gamma <=[ Th ] delta
   (gamma , xi , _ , t) <=[ suc Th v w {T = T} ] (delta , xi' , _ , t') =
@@ -177,6 +177,7 @@ select (suc Ph v w {wFPh} {lFPh}) (xs , xi , p , t)
   = (ys , xi , triangle Ph q v w wFPh lFPh p , t) , q , refl
 
 
+infixr 5 _::_
 data Vec : Nat -> Set -> Set where
   [] : forall {a} -> Vec zero a
   _::_ : forall {n a} -> a -> Vec n a -> Vec (suc n) a
@@ -228,7 +229,7 @@ selectH :
 Brick : (ty : BrickTy) → Headers (ctx ty) → Set
 
 Headers eps = ⊤
-Headers (ext ctx sel T) =
+Headers (ext ctx th sel T) =
   let Hds = Headers ctx in
   Σ Hds λ hds → Brick (mkBrickTy _ _ T) (selectH sel hds)
 
@@ -254,7 +255,7 @@ Brick ty hds
 
 
 sizedH eps hds ns = ⊤
-sizedH (ext ctx {th = th} sel T) (hds , (ns' , _ , _)) ns
+sizedH (ext ctx th sel T) (hds , (ns' , _ , _)) ns
   = Σ (sizedH ctx hds ns) \ _ -> ns' <=[ th ]v ns
 
 lookup<= : forall {ldims wdims llen wlen ns ns' th ph} ->
@@ -271,7 +272,7 @@ lookup<= : forall {ldims wdims llen wlen ns ns' th ph} ->
   lookup hds shds ks
 
 lookup {ctx = eps} hds shds ks = _
-lookup {ctx = ext ctx sel T} (hds , (ns' , shds' , f)) (shds , sbrk) ks
+lookup {ctx = ext ctx th sel T} (hds , (ns' , shds' , f)) (shds , sbrk) ks
   = lookup hds shds ks
   , _ , lookup<= sel hds shds shds' ks sbrk
   , f (selectI ks sbrk)
@@ -313,7 +314,7 @@ _ = `cons 1 (`cons 2 `nil)
 
 `allTy : forall {a : Set} -> (a -> Set) → BrickTy
 `allTy {a} p =
-  mkBrickTy 1 (ext eps (zero {th = suc zero}) \ _ -> a)
+  mkBrickTy 1 (ext eps (suc zero) zero \ _ -> a)
   λ (_ , _ , _ , x) → p x
 
 `all : forall {a : Set} → (a → Set) → (`list a → Set)
@@ -331,3 +332,80 @@ _ = `cons 1 (`cons 2 `nil)
   ,  \ where
       (suc k :: _) -> px
       (no k :: _)  -> pxs (k :: [])
+
+`relTy : forall {a b : Set} -> (a -> b -> Set) → BrickTy
+`relTy {a} {b} r =
+  mkBrickTy 1
+    (ext (ext eps (suc zero) zero \ _ -> a)
+         (suc zero) (no zero) \ _ -> b)
+  \ (((_) , _ , _ , x) , (_ , _ , y)) -> r x y
+
+`rel : forall {a b : Set} → (a → b -> Set) →
+       (`list a → `list b -> Set)
+`rel r xs ys = Brick (`relTy r) ((_ , xs) , ys)
+
+`nilr : forall {a b : Set} {r : a -> b -> Set} ->
+        `rel r `nil `nil
+`nilr = 0 :: []
+      , (((_ , suc zero) , suc zero)
+      , \ where (() :: []))
+
+`consr : forall {a b : Set} {r : a -> b -> Set} {x y xs ys} ->
+         r x y -> `rel r xs ys -> `rel r (`cons x xs) (`cons y ys)
+`consr
+  {xs = nx :: [] , _ , xs}
+  {ys = ny :: [] , _ , ys} rxy
+  (n :: [] , ((_ , suc zero) , suc zero) , rxsys)
+  = suc n :: []
+  , ((_ , suc zero) , suc zero)
+  ,  \ where
+      (suc k :: _) -> rxy
+      (no k :: _)  -> rxsys (k :: [])
+
+zip : forall {a b : Set} {r : a -> b -> Set} {xs ys} ->
+      `rel r xs ys -> `list (Σ a \ x -> Σ b \ y -> r x y)
+zip (_ , ((_ , suc zero) , suc zero) , rxsys)
+  = _ , _ , \ ks → _ , _ , rxsys ks
+
+
+`matTy : forall {a b : Set} -> (a -> b -> Set) → BrickTy
+`matTy {a} {b} r =
+  mkBrickTy 2
+    (ext (ext eps (suc (no zero)) zero (\ _ -> a))
+      (no (suc zero)) (no zero) (\ _ -> b))
+    \ (((_) , _ , _ , x) , (_ , _ , y)) -> r x y
+
+`mat : forall {a b : Set} → (a → b -> Set) →
+       (`list a → `list b -> Set)
+`mat r xs ys = Brick (`matTy r) ((_ , xs) , ys)
+
+`nilm : forall {a b : Set} {r : a -> b -> Set} {ys} ->
+        `mat r `nil ys
+`nilm {ys = n :: [] , p , ys} = 0 :: n :: []
+      , ((_ , suc (no zero)) , no (suc zero))
+      , \ where (() :: _)
+
+`consm : forall {a b : Set} {r : a -> b -> Set} {x xs ys} ->
+         `all (r x) ys -> `mat r xs ys -> `mat r (`cons x xs) ys
+`consm
+  {xs = nx :: [] , _ , xs}
+  {ys = ny :: [] , _ , ys}
+  (m :: [] , (_ , suc zero) , rxys)
+  (n :: m :: [] , ((_ , suc (no zero)) , no (suc zero)) , rxsys)
+  = suc n :: m :: []
+  , ((_ , suc (no zero)) , no (suc zero))
+  , \ where
+    (suc k :: l :: []) -> rxys (l :: [])
+    (no k :: l :: []) -> rxsys (k :: l :: [])
+
+flip : forall {a b : Set} {c : a -> b -> Set1} ->
+       ((x : a) -> (y : b) -> c x y) ->
+       ((y : b) -> (x : a) -> c x y)
+flip f y x = f x y
+
+transpose : forall {a b : Set} {r : a -> b -> Set} {xs ys} ->
+            `mat r xs ys -> `mat (flip r) ys xs
+transpose (m :: n :: [] , ((_ , suc (no zero)) , no (suc zero)) , rxsys)
+  = n :: m :: []
+  , ((_ , suc (no zero)) , no (suc zero))
+  , \ where (k :: l :: []) -> rxsys (l :: k :: [])
