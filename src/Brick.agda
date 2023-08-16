@@ -15,6 +15,8 @@ data _<=_ : Nat -> Nat -> Set where
   suc : forall {n m} -> n <= m -> suc n <= suc m
   zero : zero <= zero
 
+Fin = suc zero <=_
+
 data [_-_]~_ : forall {l n m} -> l <= n -> n <= m -> l <= m -> Set where
   nr : forall {l n m}{th : l <= n}{ph : n <= m}{ps : l <= m}
       -> [ th - ph ]~ ps
@@ -142,14 +144,6 @@ interleaved mutual
     Σ (gamma  <=[ Th ] delta)
     \ _ -> _≡_  {_} {⟨ T ⟩} (_ , t) (_ , t')
 
-select : {wdims ldims wlen llen : Nat}
-    {Gamma : wdims -Context- wlen}
-    {th : wdims <= ldims}{ph : wlen <= llen}
-    {Delta : ldims -Context- llen}
-    (Ph : Gamma <=[ th ∣ ph ] Delta) ->
-    (xs : [[ Delta ]]) ->
-    ⟨ _<=[ Ph ] xs ⟩
-
 triangle :  forall {wdims} {ldims} {th : wdims <= ldims} {wlen} {llen}
               {Gamma : wdims -Context- wlen} {ph : wlen <= llen}
               {Delta : ldims -Context- llen} (Ph : Gamma <=[ th ∣ ph ] Delta)
@@ -161,16 +155,139 @@ triangle :  forall {wdims} {ldims} {th : wdims <= ldims} {wlen} {llen}
               (wFPh : Xi <=[ wfth ∣ wfph ] Gamma)
               (lFPh : Xi <=[ lfth ∣ lfph ] Delta) {xi : [[ Xi ]]}
               (p : xi <=[ lFPh ] xs) ->
-       xi <=[ wFPh ] ys
+                   xi <=[ wFPh ] ys
+triangle (no Ph) q v (nr w) wFPh (no lFPh) p = triangle Ph q v w wFPh lFPh p
+triangle (suc Ph _ _) (q , _) v (nl w) (no wFPh) (no lFPh) p = triangle Ph q v w wFPh lFPh p
+triangle (suc Ph _ _) (q , refl) v (suc w) (suc wFPh _ _) (suc lFPh _ _) (p , refl)
+  = triangle Ph q v w wFPh lFPh p , refl
+triangle zero q v zero zero zero p = _
 
+
+select : {wdims ldims wlen llen : Nat}
+    {Gamma : wdims -Context- wlen}
+    {th : wdims <= ldims}{ph : wlen <= llen}
+    {Delta : ldims -Context- llen}
+    (Ph : Gamma <=[ th ∣ ph ] Delta) ->
+    (xs : [[ Delta ]]) ->
+    ⟨ _<=[ Ph ] xs ⟩
 select zero tt = _
 select (no Ph) (xs , _) = select Ph xs
 select (suc Ph v w {wFPh} {lFPh}) (xs , xi , p , t)
   with ys , q <- select Ph xs
   = (ys , xi , triangle Ph q v w wFPh lFPh p , t) , q , refl
 
-triangle (no Ph) q v (nr w) wFPh (no lFPh) p = triangle Ph q v w wFPh lFPh p
-triangle (suc Ph _ _) (q , _) v (nl w) (no wFPh) (no lFPh) p = triangle Ph q v w wFPh lFPh p
-triangle (suc Ph _ _) (q , refl) v (suc w) (suc wFPh _ _) (suc lFPh _ _) (p , refl)
-  = triangle Ph q v w wFPh lFPh p , refl
-triangle zero q v zero zero zero p = _
+
+data Vec : Nat -> Set -> Set where
+  [] : forall {a} -> Vec zero a
+  _::_ : forall {n a} -> a -> Vec n a -> Vec (suc n) a
+
+data Indices : forall {n} -> Vec n Nat -> Set where
+  [] : Indices []
+  _::_ : forall {n d} {ds : Vec n Nat} ->
+         Fin d -> Indices ds -> Indices (d :: ds)
+
+data _<=[_]v_ {a} :
+  forall {n m} ->
+  Vec n a -> n <= m ->
+  Vec m a -> Set where
+  zero : [] <=[ zero ]v []
+  no   : forall {n m vs w ws} {th : n <= m} ->
+         vs <=[ th ]v ws -> vs <=[ no th ]v (w :: ws)
+  suc  : forall {n m vs w ws} {th : n <= m} ->
+         vs <=[ th ]v ws -> (w :: vs) <=[ suc th ]v (w :: ws)
+
+selectI : forall {n m ns' ns} {th : n <= m} ->
+          Indices ns -> ns' <=[ th ]v ns -> Indices ns'
+selectI ks zero = ks
+selectI (_ :: ks) (no th) = selectI ks th
+selectI (k :: ks) (suc th) = k :: selectI ks th
+
+record BrickTy : Set1 where
+  constructor mkBrickTy
+  field
+    dims   : Nat
+    {len}  : Nat
+    ctx    : dims -Context- len
+    cellTy : [[ ctx ]] -> Set
+open BrickTy
+
+Headers : forall {dims len} ->
+          (ctx : dims -Context- len) ->
+          Set
+
+selectH :
+  forall {wdims wlen ldims llen}
+  {ph : wlen <= llen}
+  {th : wdims <= ldims}
+  {Gamma : ldims -Context- llen} ->
+  {Delta : wdims -Context- wlen} ->
+  Delta <=[ th ∣ ph ] Gamma ->
+  Headers Gamma ->
+  Headers Delta
+
+Brick : (ty : BrickTy) → Headers (ctx ty) → Set
+
+Headers eps = ⊤
+Headers (ext ctx sel T) =
+  let Hds = Headers ctx in
+  Σ Hds λ hds → Brick (mkBrickTy _ _ T) (selectH sel hds)
+
+selectH zero hds = hds
+selectH (no sel) (hds , _) = selectH sel hds
+selectH (suc sel cod col) (hds , brk)
+  = selectH sel hds
+  , subst (Brick _ ) {!!} brk
+
+sizedH : forall {dims len} ->
+    (ctx : dims -Context- len) ->
+    Headers ctx -> Vec dims Nat -> Set
+
+lookup : forall {dims len} {ctx : dims -Context- len} {ns}
+         (hds : Headers ctx) -> sizedH ctx hds ns ->
+         Indices ns -> [[ ctx ]]
+
+Brick ty hds
+  = Σ (Vec (dims ty) Nat) \ ns ->
+    Σ (sizedH (ctx ty) hds ns) \ ok ->
+    forall (ks : Indices ns) ->
+    cellTy ty (lookup hds ok ks)
+
+
+sizedH eps hds ns = ⊤
+sizedH (ext ctx {th = th} sel T) (hds , (ns' , _ , _)) ns
+  = Σ (sizedH ctx hds ns) \ _ -> ns' <=[ th ]v ns
+
+lookup<= : forall {ldims wdims llen wlen ns ns' th ph} ->
+  {Gamma   : ldims -Context- llen}
+  {Delta : wdims -Context- wlen}
+  (sel   : Delta <=[ th ∣ ph ] Gamma) ->
+  (hds : Headers Gamma) ->
+  (shds  : sizedH Gamma hds ns) ->
+  (shds' : sizedH Delta (selectH sel hds) ns') ->
+  (ks : Indices ns) ->
+  (sbrk  : ns' <=[ th ]v ns) ->
+  lookup (selectH sel hds) shds' (selectI ks sbrk)
+    <=[ sel ]
+  lookup hds shds ks
+
+lookup {ctx = eps} hds shds ks = _
+lookup {ctx = ext ctx sel T} (hds , (ns' , shds' , f)) (shds , sbrk) ks
+  = lookup hds shds ks
+  , _ , lookup<= sel hds shds shds' ks sbrk
+  , f (selectI ks sbrk)
+
+lookup<= zero hds shds shds' ks sbrk = _
+lookup<= (no sel) (hds , _) (shds , _) shds' ks sbrk
+  = lookup<= sel hds shds shds' ks sbrk
+lookup<= (suc sel x x1) (hds , brk) (shds , sbrk1) (shds' , sbrk1') ks sbrk
+  = lookup<= sel hds shds shds' ks sbrk
+  , {!!}
+
+{-
+_∋[_,_] :
+  forall {dims len} {ctx : dims -Context- len} ->
+  [[ ctx ]] → Vec dims Nat → Headers ctx → Set
+_∋[_,_] {ctx = eps} vs ns hds = {!!}
+_∋[_,_] {ctx = ext ctx sel T} vs ns (hds , brk)
+  = {!!}
+-}

@@ -1,5 +1,5 @@
 {-# OPTIONS --no-unicode #-}
-module Brick where
+module Bruck where
 
 open import Agda.Builtin.Nat using (Nat; zero; suc)
 open import Agda.Builtin.Unit using (⊤; tt)
@@ -149,10 +149,10 @@ mutual
       {T' : [! Delta' !] -> Set}
       ->
       Sel Delta th (no ph) (ext Gamma Delta' th' ph' v' T')
-              
+
     zero : Sel eps zero zero eps
-    
-    
+
+
   proj : forall {c d n m}{Delta : c -Context- n}{th : c <= d}{ph : n <= m}
               {Gamma : d -Context- m}
               -> Sel Delta th ph Gamma -> [! Gamma !] -> [! Delta !]
@@ -271,6 +271,5 @@ Brick : forall {d m} -> (Gamma : d -Context- m) -> (BrickI Gamma -> Set) -> (Bri
 Brick {d}{m} Gamma = IC (BrickI Gamma) (BrickO Gamma) {!!} {!!} {!!}
 BrickO eps = One
 BrickO (ext Gamma th ph v T) = Sg (BrickO Gamma) \ Bz -> {!Brick !}
-    
--}
 
+-}
